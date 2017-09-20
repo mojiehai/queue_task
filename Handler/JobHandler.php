@@ -1,6 +1,14 @@
 <?php
 
-abstract class PersistJobHandler {
+require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
+require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
+
+
+/**
+ * 任务回调
+ * Class JobHandler
+ */
+abstract class JobHandler {
 
     /**
      * 回调执行任务方法
@@ -39,10 +47,10 @@ abstract class PersistJobHandler {
      * 设置本次执行handler为失败
      * @param string $msg
      * @param int $code
-     * @throws PersistException
+     * @throws TaskException
      */
     public function throwOnceFailure($msg = "" , $code = 0){
-        throw new PersistException($msg,$code);
+        throw new TaskException($msg,$code);
     }
 
 } 

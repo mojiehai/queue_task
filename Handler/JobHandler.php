@@ -12,9 +12,9 @@ abstract class JobHandler {
 
     /**
      * 回调执行任务方法
-     * @param $job
-     * @param $func
-     * @param $data
+     * @param $job      任务
+     * @param $func     执行的方法
+     * @param $data     参数
      * @return mixed
      */
     public function handler($job , $func , $data){
@@ -24,9 +24,9 @@ abstract class JobHandler {
 
     /**
      * 失败回调方法
-     * @param $job
-     * @param $func
-     * @param $data
+     * @param $job      任务
+     * @param $func     执行的方法
+     * @param $data     参数
      * @return mixed
      */
     abstract public function failed($job , $func , $data);

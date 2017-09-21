@@ -3,6 +3,7 @@
 
 namespace ap;
 class C{
+    protected $abc = "";
     private $res = '';
     private $res1 = '';
     private $res2 = '';
@@ -10,6 +11,9 @@ class C{
     private $res4 = '';
     private $res5 = '';
 
+    public function __construct($abc){
+        $this->abc = $abc;
+    }
 
     public function __sleep(){
         $this->res = "1";
@@ -35,22 +39,21 @@ class C{
     public function __wakeup(){
         $this->res2 = "2";
     }
+
+    public function getAbc(){
+        return $this->abc;
+    }
 }
 
 class B extends C{
-    private $abc = "";
+    protected $abc = "";
+    public function __construct($abc){
+        parent::__construct($abc);
+    }
+
 }
 
 
-$res = new C();
 
-//$ress = serialize($res);
-
-//$r = unserialize($ress);
-//$r->getK();
-//$res -> getK();
-
-echo "<br />";
-$b = new B();
-//$b -> getK();
-var_dump($b->getVars());
+$b = new B(123);
+echo $b->getAbc();

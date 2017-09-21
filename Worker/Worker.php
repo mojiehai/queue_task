@@ -35,8 +35,12 @@ class Worker {
 
                     $job->execute();
 
-                    if (! $job->isDeleted()) {
+                    if (! $job->isExec() ) {
+                        //执行失败，重新将任务放入队尾
                         $job->release($delay);
+                    }else{
+                        //执行成功，删除任务
+                        $job->delete();
                     }
                 }
             }

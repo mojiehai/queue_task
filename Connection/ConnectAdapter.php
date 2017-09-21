@@ -11,11 +11,16 @@ class ConnectAdapter {
 
     /**
      * 根据配置文件返回任务存储介质
+     * @param string $type
      * @return Connection|null
      */
-    public static function getConnection(){
+    public static function getConnection($type = ''){
 
-        switch(STORAGE_TYPE){
+        if(empty($type)){
+            $type = STORAGE_TYPE;
+        }
+
+        switch($type){
 
             case STORAGE_MYSQL:
                 return self::getMysql();

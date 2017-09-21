@@ -3,6 +3,7 @@
 
 require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
 require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
+require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
 
 /**
  * 任务
@@ -11,7 +12,7 @@ require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
 abstract class Job {
 
     protected $connect = null;      //连接对象
-    protected $connectType = "";    //连接对象（类型）
+    public    $connectType = "";    //连接对象（类型）
 
     public function __construct(Connection $connect){
         $this->connect     = $connect;
@@ -47,12 +48,11 @@ abstract class Job {
     abstract public function execute();
 
 
-
     /**
-     * 任务是否删除
+     * 任务是否执行成功
      * @return boolean
      */
-    abstract public function isDeleted();
+    abstract public function isExec();
 
 
     /**
@@ -63,9 +63,45 @@ abstract class Job {
     abstract public function release($delay = 0);
 
 
+    /**
+     * 设置该任务的连接对象
+     * @param $conn
+     */
+    public function setConnect($conn){
+        $this->connect = $conn;
+    }
 
+    /**
     public function __sleep(){
     }
 
+    public function __wakeup(){
+    }
+     */
+
+
+    /**
+     * 序列化
+     * @return string
+     */
+    public function m_Serialize(){
+        $this->connect = null;
+        return serialize($this);
+    }
+
+    /**
+     * 反序列化
+     * @param $objStr
+     * @return Job
+     */
+    public static function m_UnSerialize($objStr){
+        $obj = unserialize($objStr);
+        if( $obj instanceof Job ){
+            $obj -> setConnect = ConnectAdapter::getConnection($obj->connectType);
+            return $obj;
+        } else {
+            return null;
+        }
+    }
 
 } 

@@ -1,6 +1,9 @@
 <?php
 
 require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
+require_once TASK_ROOT_PATH.DS."Connection".DS."File".DS."FileConnect.php";
+require_once TASK_ROOT_PATH.DS."Connection".DS."Redis".DS."RedisConnect.php";
+require_once TASK_ROOT_PATH.DS."Connection".DS."MySql".DS."MySqlConnect.php";
 
 /**
  * 获取任务存储方式
@@ -42,19 +45,27 @@ class ConnectAdapter {
     }
 
 
-
+    /**
+     * @return MySqlConnect
+     */
     public static function getMysql(){
-        return null;
+        return MySqlConnect::getInstance();
     }
 
 
+    /**
+     * @return RedisConnect
+     */
     public static function getRedis(){
-        return null;
+        return RedisConnect::getInstance();
     }
 
 
+    /**
+     * @return FileConnect
+     */
     public static function getFile(){
-        return null;
+        return FileConnect::getInstance();
     }
 
 } 

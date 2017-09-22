@@ -11,12 +11,19 @@ require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
  */
 abstract class Job {
 
+    /**
+     * 连接对象
+     * @var Connection
+     */
     protected $connect = null;      //连接对象
     public    $connectType = "";    //连接对象（类型）
 
-    public function __construct(Connection $connect){
+    public    $queueName = "";      //队列名称
+
+    public function __construct(Connection $connect , $queueName){
         $this->connect     = $connect;
         $this->connectType = $connect->getType();
+        $this->$queueName  = $queueName;
     }
 
     /**
@@ -24,13 +31,6 @@ abstract class Job {
      * @return int
      */
     abstract public function getAttempts();
-
-
-    /**
-     * 删除任务
-     * @return boolean
-     */
-    abstract public function delete();
 
 
 
@@ -85,7 +85,7 @@ abstract class Job {
      * @return string
      */
     public function m_Serialize(){
-        $this->connect = null;
+        //$this->connect = null;
         return serialize($this);
     }
 

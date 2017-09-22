@@ -12,9 +12,9 @@ abstract class JobHandler {
 
     /**
      * 回调执行任务方法
-     * @param $job      任务
-     * @param $func     执行的方法
-     * @param $data     参数
+     * @param Job $job      任务
+     * @param String $func     执行的方法
+     * @param array $data     参数
      * @return mixed
      */
     public function handler($job , $func , $data){

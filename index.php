@@ -3,6 +3,7 @@
 
 namespace ap;
 class C{
+    protected static $conn;
     protected $abc = "";
     private $res = '';
     private $res1 = '';
@@ -13,6 +14,7 @@ class C{
 
     public function __construct($abc){
         $this->abc = $abc;
+        self::$conn = $abc;
     }
 
     public function __sleep(){
@@ -22,6 +24,10 @@ class C{
 
     public function getVars(){
         return get_class_vars(get_called_class());
+    }
+
+    public function getConn(){
+        return self::$conn;
     }
 
     public function getK(){
@@ -56,4 +62,4 @@ class B extends C{
 
 
 $b = new B(123);
-echo $b->getAbc();
+var_dump($b->getConn());

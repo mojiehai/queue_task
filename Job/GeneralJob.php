@@ -7,22 +7,45 @@ require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
 
 class GeneralJob extends Job{
 
+    /**
+     * 连接对象
+     * @var Connection
+     */
     protected $connect = null;       //连接对象            Connection
     public    $connectType = "";     //连接对象（类型）     String
 
-    private $id       = 0;           //job id              Int
-    private $handler  = null;        //job handler         JobHandler
-    private $isexec   = false;       //是否执行成功         boolean
-    private $attempts = 0;           //已经执行次数         Int
-    private $func     = "";          //执行方法             String
-    private $param    = [];          //执行参数             array
+    private $handler;           //job handler         JobHandler
+    private $isexec;            //是否执行成功         boolean
+    private $attempts;          //已经执行次数         Int
+    private $func;              //执行方法             String
+    private $param;             //执行参数             array
 
-    public function __construct(Connection $connect , JobHandler $handler , $func , array $param){
-        parent::__construct($connect);
+    public $queueName;          //队列名称              String
+
+    /**
+     * @param Connection $connect 连接对象
+     * @param String $queueName   队列名称
+     * @param JobHandler $handler 回调类
+     * @param String $func        回调类中的回调方法名
+     * @param array $param        该回调方法需要的参数数组
+     */
+    public function __construct(Connection $connect , $queueName , JobHandler $handler , $func , array $param){
+        parent::__construct($connect,$queueName);
+
+        $this->init();
 
         $this->handler = $handler;
         $this->func    = $func;
         $this->param   = $param;
+        $this->queueName = $queueName;
+    }
+
+    /**
+     * 初始化默认任务参数
+     */
+    public function init(){
+        $this->isexec = false;
+        $this->attempts = 0;
     }
 
     /**
@@ -34,14 +57,6 @@ class GeneralJob extends Job{
         return $this->attempts;
     }
 
-    /**
-     * 删除任务
-     * @return boolean
-     */
-    public function delete()
-    {
-        return $this -> connect -> deleteJob($this);
-    }
 
     /**
      * 任务失败回调
@@ -91,7 +106,7 @@ class GeneralJob extends Job{
      */
     public function release($delay = 0)
     {
-        return $this -> connect -> releaseJob($this , $delay);
+        return $this -> connect -> laterOn($delay , $this);
     }
 
 

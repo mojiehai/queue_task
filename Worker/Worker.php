@@ -24,12 +24,13 @@ class Worker {
         $job = null;
         while (true){
 
+            //弹出任务
             $job = $queue->pop($queueName);
 
             if($job instanceof Job){
 
                 if($attempt > 0 && $job->getAttempts() > $attempt){
-                    $job->delete();
+                    //任务失败，触发回调
                     $job->failed();
                 }else{
 
@@ -38,9 +39,6 @@ class Worker {
                     if (! $job->isExec() ) {
                         //执行失败，重新将任务放入队尾
                         $job->release($delay);
-                    }else{
-                        //执行成功，删除任务
-                        $job->delete();
                     }
                 }
             }

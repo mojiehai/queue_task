@@ -20,3 +20,10 @@ if( !defined('STORAGE_FILE') )      define('STORAGE_FILE' , 'file' );
 
 if( !defined('STORAGE_TYPE') )      define('STORAGE_TYPE' , STORAGE_MYSQL );        //存储方式
 /****************************** 队列存储方式 ********************************/
+
+
+
+/**************************** 加载不同存储方式的配置 ************************************/
+require_once TASK_ROOT_PATH.DS."Config".DS."file_conf.php";
+require_once TASK_ROOT_PATH.DS."Config".DS."mysql_conf.php";
+require_once TASK_ROOT_PATH.DS."Config".DS."redis_conf.php";

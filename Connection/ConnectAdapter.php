@@ -11,7 +11,6 @@ require_once TASK_ROOT_PATH.DS."Connection".DS."MySql".DS."MySqlConnect.php";
  */
 class ConnectAdapter {
 
-
     /**
      * 根据配置文件返回任务存储介质
      * @param string $type

@@ -3,6 +3,7 @@
 require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
 require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
 require_once TASK_ROOT_PATH.DS."Job".DS."GeneralJob.php";
+require_once TASK_ROOT_PATH.DS."Queue".DS."QueueInterface.php";
 
 /**
  * 队列实体
@@ -77,6 +78,14 @@ abstract class Queue implements QueueInterface{
     {
         $job = new GeneralJob(ConnectAdapter::getConnection(),$queueName,$handler,$func,$param);
         return $this->laterPush($delay,$job);
+    }
+
+
+    /**
+     * 关闭数据库连接
+     */
+    public function close(){
+        self::$connection->close();
     }
 
 

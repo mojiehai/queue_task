@@ -47,7 +47,7 @@ class Worker {
 
 
             if (self::memoryExceeded($memory)) {
-                self::stop();
+                self::stop($queue);
             }
         }
     }
@@ -67,7 +67,8 @@ class Worker {
     /**
      * 停止队列监听
      */
-    public static function stop(){
+    public static function stop(Queue $queue){
+        $queue->close();
         die;
     }
 

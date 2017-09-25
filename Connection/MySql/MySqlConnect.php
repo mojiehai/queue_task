@@ -1,6 +1,7 @@
 <?php
 require_once dirname(dirname(dirname(__FILE__))).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
 require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
+require_once TASK_ROOT_PATH.DS."Exception".DS."DBException.php";
 
 
 /**
@@ -9,14 +10,26 @@ require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
  */
 class MySqlConnect extends Connection{
 
+    //数据表名
+    const TABLE_NAME = "job_queue";
+
+    //mysql连接
+    protected static $connect = null;
+
+    //单例对象
     protected static $instance = null;
     protected function __construct(){
-        //TODO  初始化mysql连接
+        $this->init();
     }
     public function __destruct(){
         $this->close();
         self::$instance = null;
     }
+
+    /**
+     * 获取单例
+     * @return MySqlConnect|null
+     */
     public static function getInstance(){
         if( self::$instance == null ){
             self::$instance = new MySqlConnect();
@@ -26,12 +39,26 @@ class MySqlConnect extends Connection{
 
 
     /**
+     * 初始化连接
+     * @throws DBException
+     */
+    private function init(){
+        // 初始化mysql连接
+        self::$connect = mysqli_connect(QT_DB_HOST,QT_DB_USERNAME,QT_DB_PASSWORD,QT_DB_DATABASE,QT_DB_PORT);
+        if(!self::$connect){
+            throw new DBException("MySql Connection Error:".mysqli_connect_error(),mysqli_connect_errno());
+        }
+        mysqli_set_charset(self::$connect,QT_DB_CHARSET);
+    }
+
+
+    /**
      * 返回存储方式(mysql/redis/file...)
      * @return String
      */
     public function getType()
     {
-        // TODO: Implement getType() method.
+        return STORAGE_MYSQL;
     }
 
     /**
@@ -40,7 +67,7 @@ class MySqlConnect extends Connection{
      */
     public function close()
     {
-        // TODO: Implement close() method.
+        return mysqli_close(self::$connect);
     }
 
     /**

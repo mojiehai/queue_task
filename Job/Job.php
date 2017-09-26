@@ -40,6 +40,11 @@ abstract class Job {
      */
     abstract public function failed();
 
+    /**
+     * 任务成功回调
+     * @return void
+     */
+    abstract public function success();
 
     /**
      * 执行任务
@@ -67,17 +72,19 @@ abstract class Job {
      * 设置该任务的连接对象
      * @param $conn
      */
+    /**
     public function setConnect($conn){
         $this->connect = $conn;
-    }
+    }*/
 
     /**
     public function __sleep(){
     }
+     **/
 
     public function __wakeup(){
+        $this -> connect = ConnectAdapter::getConnection($this->connectType);
     }
-     */
 
 
     /**
@@ -94,14 +101,16 @@ abstract class Job {
      * @param $objStr
      * @return Job
      */
+    /**
     public static function m_UnSerialize($objStr){
         $obj = unserialize($objStr);
         if( $obj instanceof Job ){
-            $obj -> setConnect = ConnectAdapter::getConnection($obj->connectType);
+            $obj -> connect = ConnectAdapter::getConnection($obj->connectType);
             return $obj;
         } else {
             return null;
         }
     }
+     */
 
 } 

@@ -77,7 +77,16 @@ class MySqlConnect extends Connection{
      */
     public function pop($queueName)
     {
-        // TODO: Implement pop() method.
+        $date = date('Y-m-d H:i:s',time());
+        $sql = 'SELECT * FROM `'.self::TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantexectime` <= "'.$date.'" ORDER BY `wantexectime` ASC LIMIT 1';
+        $res = mysqli_query(self::$connect,$sql);
+        if($res){
+            while($result = mysqli_fetch_assoc($res)){
+                $job = unserialize($result['job']);
+            }
+        }else{
+            return null;
+        }
     }
 
     /**
@@ -87,7 +96,14 @@ class MySqlConnect extends Connection{
      */
     public function push(Job $job)
     {
-        // TODO: Implement push() method.
+        $currtime = date('Y-m-d H:i:s',time());
+        $queueName = $job->queueName;
+        $createtime = $currtime;
+        $wantexectime = $currtime;
+        $jobstr = $job->m_Serialize();
+
+        $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
+        return mysqli_query(self::$connect,$sql);
     }
 
     /**
@@ -98,6 +114,13 @@ class MySqlConnect extends Connection{
      */
     public function laterOn($delay, Job $job)
     {
-        // TODO: Implement laterOn() method.
+        $currtime = date('Y-m-d H:i:s',time());
+        $queueName = $job->queueName;
+        $createtime = $currtime;
+        $wantexectime = date('Y-m-d H:i:s',time() + $delay);
+        $jobstr = $job->m_Serialize();
+
+        $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
+        return mysqli_query(self::$connect,$sql);
     }
 }

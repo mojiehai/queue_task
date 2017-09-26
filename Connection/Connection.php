@@ -26,7 +26,7 @@ abstract class Connection {
     /**
      * 弹出队头任务(先删除后返回该任务)
      * @param $queueName
-     * @return Job
+     * @return Job|null
      */
     abstract public function pop($queueName);
 

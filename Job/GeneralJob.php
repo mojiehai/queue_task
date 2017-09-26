@@ -68,6 +68,15 @@ class GeneralJob extends Job{
     }
 
     /**
+     * 任务成功回调
+     * @return void
+     */
+    public function success()
+    {
+        $this -> handler -> success($this,$this->func,$this->param);
+    }
+
+    /**
      * 执行任务
      * @return mixed
      */

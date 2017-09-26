@@ -39,6 +39,9 @@ class Worker {
                     if (! $job->isExec() ) {
                         //执行失败，重新将任务放入队尾
                         $job->release($delay);
+                    }else{
+                        //任务成功，触发回调
+                        $job->success();
                     }
                 }
             }

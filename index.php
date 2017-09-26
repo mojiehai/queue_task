@@ -1,7 +1,8 @@
 <?php
 
 require_once "./QueueAdapter.php";
+require_once "./Handler/TestHandler.php";
 
 $res = QueueAdapter::getQueue();
 
-var_dump($res);
+$res->pushOn(new TestHandler(),'test',['test'=>'test'],'a');

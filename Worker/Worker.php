@@ -29,7 +29,7 @@ class Worker {
 
             if($job instanceof Job){
 
-                if($attempt > 0 && $job->getAttempts() > $attempt){
+                if($attempt > 0 && $job->getAttempts() >= $attempt){
                     //任务失败，触发回调
                     $job->failed();
                 }else{

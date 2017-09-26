@@ -14,6 +14,7 @@ class TestHandler extends JobHandler{
      */
     public function failed($job, $func, $data)
     {
+        echo $func." failed [".date('Y-m-d H:i:s',time())."] no \r\n";
     }
 
     /**
@@ -25,6 +26,7 @@ class TestHandler extends JobHandler{
      */
     public function success($job, $func, $data)
     {
+        echo $func." success [".date('Y-m-d H:i:s',time())."] yes \r\n";
     }
 
 
@@ -37,6 +39,12 @@ class TestHandler extends JobHandler{
         $rs = fopen($path,"a+");
         fwrite($rs,"[".date('Y-m-d H:i:s',time())."] test ok : ".json_encode($data)."\r\n");
         fclose($rs);
+        if(rand(0,2) == 0){
+            echo "[".date('Y-m-d H:i:s',time())."] ok \r\n";
+        }else{
+            echo "[".date('Y-m-d H:i:s',time())."] no \r\n";
+            $this->throwOnceFailure('error ');
+        }
     }
 
 

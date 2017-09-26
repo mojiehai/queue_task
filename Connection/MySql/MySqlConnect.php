@@ -81,8 +81,20 @@ class MySqlConnect extends Connection{
         $sql = 'SELECT * FROM `'.self::TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantexectime` <= "'.$date.'" ORDER BY `wantexectime` ASC LIMIT 1';
         $res = mysqli_query(self::$connect,$sql);
         if($res){
-            while($result = mysqli_fetch_assoc($res)){
+            $result = mysqli_fetch_assoc($res);
+            if($result){
                 $job = unserialize($result['job']);
+
+                //删除该任务
+                $delsql = 'DELETE FROM `'.self::TABLE_NAME.'` WHERE `id` = '.$result['id'];
+                $res2 = mysqli_query(self::$connect,$delsql);
+                if($res2){
+                    return $job;
+                }else{
+                    return null;
+                }
+            }else{
+                return null;
             }
         }else{
             return null;
@@ -100,7 +112,7 @@ class MySqlConnect extends Connection{
         $queueName = $job->queueName;
         $createtime = $currtime;
         $wantexectime = $currtime;
-        $jobstr = $job->m_Serialize();
+        $jobstr = serialize($job);
 
         $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
         return mysqli_query(self::$connect,$sql);
@@ -118,7 +130,7 @@ class MySqlConnect extends Connection{
         $queueName = $job->queueName;
         $createtime = $currtime;
         $wantexectime = date('Y-m-d H:i:s',time() + $delay);
-        $jobstr = $job->m_Serialize();
+        $jobstr = serialize($job);
 
         $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
         return mysqli_query(self::$connect,$sql);

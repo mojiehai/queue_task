@@ -61,7 +61,7 @@ abstract class Queue implements QueueInterface{
      */
     public function pushOn(JobHandler $handler, $func, array $param, $queueName)
     {
-        $job = new GeneralJob(ConnectAdapter::getConnection(),$queueName,$handler,$func,$param);
+        $job = new GeneralJob(self::$connection->getType(),$queueName,$handler,$func,$param);
         return $this->push($job);
     }
 
@@ -76,7 +76,7 @@ abstract class Queue implements QueueInterface{
      */
     public function laterOn($delay, JobHandler $handler, $func, array $param, $queueName)
     {
-        $job = new GeneralJob(ConnectAdapter::getConnection(),$queueName,$handler,$func,$param);
+        $job = new GeneralJob(self::$connection->getType(),$queueName,$handler,$func,$param);
         return $this->laterPush($delay,$job);
     }
 

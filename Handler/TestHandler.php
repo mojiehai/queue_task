@@ -34,7 +34,7 @@ class TestHandler extends JobHandler{
         if(!file_exists($path)){
             touch($path);
         }
-        $rs = fopen($path,"w+");
+        $rs = fopen($path,"a+");
         fwrite($rs,"[".date('Y-m-d H:i:s',time())."] test ok : ".json_encode($data)."\r\n");
         fclose($rs);
     }

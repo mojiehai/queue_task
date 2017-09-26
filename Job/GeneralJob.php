@@ -3,16 +3,12 @@
 require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
 require_once TASK_ROOT_PATH.DS."Job".DS."Job.php";
 require_once TASK_ROOT_PATH.DS."Handler".DS."JobHandler.php";
+require_once TASK_ROOT_PATH.DS."Handler".DS."TestHandler.php";
 require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
 
 class GeneralJob extends Job{
 
-    /**
-     * 连接对象
-     * @var Connection
-     */
-    protected $connect = null;       //连接对象            Connection
-    public    $connectType = "";     //连接对象（类型）     String
+    public  $connectType = "";  //连接对象（类型）     String
 
     private $handler;           //job handler         JobHandler
     private $isexec;            //是否执行成功         boolean
@@ -23,14 +19,14 @@ class GeneralJob extends Job{
     public $queueName;          //队列名称              String
 
     /**
-     * @param Connection $connect 连接对象
+     * @param String $connectType 连接对象（类型）
      * @param String $queueName   队列名称
      * @param JobHandler $handler 回调类
      * @param String $func        回调类中的回调方法名
      * @param array $param        该回调方法需要的参数数组
      */
-    public function __construct(Connection $connect , $queueName , JobHandler $handler , $func , array $param){
-        parent::__construct($connect,$queueName);
+    public function __construct($connectType , $queueName , JobHandler $handler , $func , array $param){
+        parent::__construct($connectType,$queueName);
 
         $this->init();
 
@@ -115,7 +111,7 @@ class GeneralJob extends Job{
      */
     public function release($delay = 0)
     {
-        return $this -> connect -> laterOn($delay , $this);
+        return ConnectAdapter::getConnection($this->connectType) -> laterOn($delay , $this);
     }
 
 

@@ -28,6 +28,9 @@ class RedisConnect extends Connection{
             'port' => REDIS_DB_PORT,
             'database' => REDIS_DB_DATABASE
         ];
+        if(defined('REDIS_DB_PASSWORD') && REDIS_DB_PASSWORD != '' ){
+            $config = array_merge($config,[REDIS_DB_PASSWORD]);
+        }
         self::$connect = RedisDrive::getInstance($config);
     }
     public function __destruct(){

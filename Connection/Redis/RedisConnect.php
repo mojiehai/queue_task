@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(dirname(dirname(__FILE__))).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
+require_once TASK_ROOT_PATH.DS."Connection".DS."Redis".DS."RedisDrive.php";
 require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
 
 /**
@@ -9,9 +10,25 @@ require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
  */
 class RedisConnect extends Connection{
 
+    /**
+     * redis驱动
+     * @var null|RedisDrive
+     */
+    protected static $connect = null;
+
+    /**
+     * 本类单例
+     * @var RedisConnect
+     */
     protected static $instance = null;
     protected function __construct(){
-        //TODO  初始化redis连接
+        // 初始化redis连接
+        $config = [
+            'host' => REDIS_DB_HOST,
+            'port' => REDIS_DB_PORT,
+            'database' => REDIS_DB_DATABASE
+        ];
+        self::$connect = RedisDrive::getInstance($config);
     }
     public function __destruct(){
         $this->close();
@@ -31,7 +48,7 @@ class RedisConnect extends Connection{
      */
     public function getType()
     {
-        // TODO: Implement getType() method.
+        return STORAGE_REDIS;
     }
 
     /**
@@ -40,7 +57,7 @@ class RedisConnect extends Connection{
      */
     public function close()
     {
-        // TODO: Implement close() method.
+        self::$connect->close();
     }
 
     /**
@@ -57,10 +74,19 @@ class RedisConnect extends Connection{
      * 压入队列
      * @param Job $job
      * @return boolean
+     *
+     *
+     * 直接压入主执行队列
      */
     public function push(Job $job)
     {
-        // TODO: Implement push() method.
+        //命令：rpush 队列名 任务
+        $res = self::$connect->rpush($job->queueName , serialize($job));
+        if($res){
+            return true;
+        }else{
+            return false;
+        }
     }
 
     /**
@@ -68,9 +94,78 @@ class RedisConnect extends Connection{
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
      * @return boolean
+     *
+     *
+     * 放入等待执行任务的有序集合中
      */
     public function laterOn($delay, Job $job)
     {
-        // TODO: Implement laterOn() method.
+        //命令：zadd  主队列名:delayed   当前时间戳+延迟秒数  任务
+        $res = self::$connect->zadd($job->queueName.":delayed" , time() + $delay , serialize($job));
+        if($res){
+            return true;
+        }else{
+            return false;
+        }
     }
+
+
+
+
+    /**
+     * 合并等待执行的任务
+     * @param  string $queueName
+     * @return void
+     */
+    protected function migrateAllExpiredJobs($queueName)
+    {
+        $this->migrateExpiredJobs($queueName . ':delayed', $queueName);
+    }
+
+
+    /**
+     * 当延时任务到大执行时间时，将延时任务从延时任务集合中移动到主执行队列中
+     * @param  string $from     集合名称
+     * @param  string $to       队列名称
+     * @return void
+     */
+    protected function migrateExpiredJobs($from, $to)
+    {
+        $time = time();
+        $jobs = $this->getExpiredJobs($from, $time);
+        if (count($jobs) > 0) {
+            //开始redis事物
+            self::$connect->watch($from);
+            self::$connect->multi();
+
+            $this->removeExpiredJobs( $this->connector, $from, $time);
+            $this->pushExpiredJobsOntoNewQueue( $this->connector, $to, $jobs);
+
+            self::$connect->exec();
+        }
+    }
+
+
+    /**
+     * 从指定集合中获取所有超时的任务
+     * @param String $name     集合名称
+     * @param int $time     超时时间(集合中小于该时间为超时)
+     * @return mixed
+     */
+    public function getExpiredJobs($name , $time){
+        return self::$connect->zrangebyscore($name , '-inf' , $time);
+    }
+
+
+    /**
+     * 从指定集合删除过期任务
+     * @param  string $from
+     * @param  int $time
+     * @return void
+     */
+    protected function removeExpiredJobs($from, $time)
+    {
+        self::$connect->zremrangebyscore($from, '-inf', $time);
+    }
+
 }

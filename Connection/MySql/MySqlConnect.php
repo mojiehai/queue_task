@@ -44,11 +44,11 @@ class MySqlConnect extends Connection{
      */
     private function init(){
         // 初始化mysql连接
-        self::$connect = mysqli_connect(QT_DB_HOST,QT_DB_USERNAME,QT_DB_PASSWORD,QT_DB_DATABASE,QT_DB_PORT);
+        self::$connect = @mysqli_connect(MYSQL_DB_HOST,MYSQL_DB_USERNAME,MYSQL_DB_PASSWORD,MYSQL_DB_DATABASE,MYSQL_DB_PORT);
         if(!self::$connect){
             throw new DBException("MySql Connection Error:".mysqli_connect_error(),mysqli_connect_errno());
         }
-        mysqli_set_charset(self::$connect,QT_DB_CHARSET);
+        mysqli_set_charset(self::$connect,MYSQL_DB_CHARSET);
     }
 
 

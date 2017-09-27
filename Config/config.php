@@ -18,7 +18,7 @@ if( !defined('STORAGE_REDIS') )     define('STORAGE_REDIS' , 'redis' );
 if( !defined('STORAGE_FILE') )      define('STORAGE_FILE' , 'file' );
 
 
-if( !defined('STORAGE_TYPE') )      define('STORAGE_TYPE' , STORAGE_MYSQL );        //存储方式
+if( !defined('STORAGE_TYPE') )      define('STORAGE_TYPE' , STORAGE_REDIS );        //存储方式
 /****************************** 队列存储方式 ********************************/
 
 

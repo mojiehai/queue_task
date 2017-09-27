@@ -15,9 +15,12 @@ abstract class Job {
 
     public    $queueName = "";      //队列名称
 
+    public    $checkid = '';        //随机字符串(防止队列唯一)
+
     public function __construct($connectType , $queueName){
         $this->connectType = $connectType;
         $this->$queueName  = $queueName;
+        $this->checkid     = uniqid(rand(0,9999),true);
     }
 
     /**

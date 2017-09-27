@@ -3,7 +3,6 @@
 require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
 require_once TASK_ROOT_PATH.DS."Job".DS."Job.php";
 require_once TASK_ROOT_PATH.DS."Handler".DS."JobHandler.php";
-require_once TASK_ROOT_PATH.DS."Handler".DS."TestHandler.php";
 require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
 
 class GeneralJob extends Job{

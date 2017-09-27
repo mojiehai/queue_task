@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * MySql配置
+ */
 if( !defined('MYSQL_DB_HOST') ) {
 
     define('MYSQL_DB_HOST'        ,   '127.0.0.1');       //数据库地址

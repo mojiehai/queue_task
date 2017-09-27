@@ -63,11 +63,20 @@ class RedisConnect extends Connection{
     /**
      * 弹出队头任务(先删除后返回该任务)
      * @param $queueName
-     * @return Job
+     * @return Job|null
      */
-    public function pop($queueName)
-    {
-        // TODO: Implement pop() method.
+    public function pop($queueName){
+        //从延迟集合中合并到主执行队列
+        $this->migrateAllExpiredJobs($queueName);
+
+        //弹出任务
+        $jobstr = self::$connect->lpop($queueName);
+        if(!is_null($jobstr)){
+            return unserialize($jobstr);
+        }else{
+            return null;
+        }
+
     }
 
     /**
@@ -138,8 +147,8 @@ class RedisConnect extends Connection{
             self::$connect->watch($from);
             self::$connect->multi();
 
-            $this->removeExpiredJobs( $this->connector, $from, $time);
-            $this->pushExpiredJobsOntoNewQueue( $this->connector, $to, $jobs);
+            $this->removeExpiredJobs( $from, $time);
+            $this->pushExpiredJobsOntoNewQueue( $to, $jobs);
 
             self::$connect->exec();
         }
@@ -163,9 +172,22 @@ class RedisConnect extends Connection{
      * @param  int $time
      * @return void
      */
-    protected function removeExpiredJobs($from, $time)
-    {
+    protected function removeExpiredJobs($from, $time){
         self::$connect->zremrangebyscore($from, '-inf', $time);
+    }
+
+
+    /**
+     * 将多个任务从添加到队列
+     *
+     * 场景：将有序集合中的延迟任务入主队列
+     * @param  string $to
+     * @param  array $jobs
+     * @return void
+     */
+    protected function pushExpiredJobsOntoNewQueue($to, $jobs){
+        //等价于  self::$connect->rpush($to,$jobs[0],$jobs[1]... );
+        call_user_func_array([self::$connect, 'rpush'], array_merge([$to], $jobs));
     }
 
 }

@@ -208,6 +208,7 @@ class RedisDrive {
         $this->password = isset($config['password']) ? $config['password'] : $this->password;
     }
     public function __destruct(){
+        $this->close();
         self::$instance = null;
     }
 

@@ -193,7 +193,7 @@ class RedisDrive {
     /**
      * @var resource redis socket connection
      */
-    private $socket = false;
+    private static $socket = false;
 
 
 
@@ -231,11 +231,11 @@ class RedisDrive {
      * @throws DBException
      */
     protected function open(){
-        if($this->socket !== false){
+        if(self::$socket !== false){
             return;
         }
         $connection = $this->hostname . ":" . $this->port . ", database=" . $this->database;
-        $this->socket = @stream_socket_client(
+        self::$socket = @stream_socket_client(
             'tcp://' . $this->hostname . ":" .$this->port,
             $errorNumber,
             $errorDescription,
@@ -243,10 +243,10 @@ class RedisDrive {
             STREAM_CLIENT_CONNECT
         );
 
-        if($this->socket) {
+        if(self::$socket) {
 
             if ($this->dataTimeout !== null) {
-                stream_set_timeout($this->socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
+                stream_set_timeout(self::$socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
             }
             if ($this->password !== null) {
                 $this->executeCommand('AUTH', [$this->password]);
@@ -265,10 +265,10 @@ class RedisDrive {
      * 关闭redis连接
      */
     public function close(){
-        if ($this->socket !== false) {
+        if (self::$socket !== false) {
             $this->executeCommand('QUIT');
-            stream_socket_shutdown($this->socket, STREAM_SHUT_RDWR);
-            $this->socket = false;
+            stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
+            self::$socket = false;
         }
     }
 
@@ -305,7 +305,7 @@ class RedisDrive {
             $command .= '$' . mb_strlen($arg, '8bit') . "\r\n" . $arg . "\r\n";
         }
 
-        fwrite($this->socket, $command);
+        fwrite(self::$socket, $command);
 
         return $this->parseResponse(implode(' ', $params));
     }
@@ -321,7 +321,7 @@ class RedisDrive {
      */
     protected function parseResponse($command)
     {
-        if (($line = fgets($this->socket)) === false) {     //在RESP中，协议的不同部分总是以“\ r \ n”（CRLF）终止。
+        if (($line = fgets(self::$socket)) === false) {     //在RESP中，协议的不同部分总是以“\ r \ n”（CRLF）终止。
             throw new DBException("Failed to read from socket.\nRedis command was: " . $command);
         }
         $type = $line[0];
@@ -345,7 +345,7 @@ class RedisDrive {
                 $length = $line + 2;        //加上之前剔除的\r\n两个字符长度
                 $data = '';
                 while ($length > 0) {
-                    if (($block = fread($this->socket, $length)) === false) {
+                    if (($block = fread(self::$socket, $length)) === false) {
                         throw new DBException("Failed to read from socket.\nRedis command was: " . $command);
                     }
                     $data .= $block;

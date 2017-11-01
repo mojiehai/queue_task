@@ -1,9 +1,9 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Handler".DS."JobHandler.php";
+namespace QueueTask\Handler;
 
-class TestHandler extends JobHandler{
+class TestHandler extends JobHandler
+{
 
     /**
      * 失败回调方法
@@ -30,18 +30,19 @@ class TestHandler extends JobHandler{
     }
 
 
-    public function test($job,$data){
-        $path = TASK_ROOT_PATH.DS."test.log";
+    public function test($job,$data)
+    {
+        $path = dirname(__DIR__).DIRECTORY_SEPARATOR."test.log";
         //file_put_contents($path,"[".date('Y-m-d H:i:s',time())."] test ok\r\n");
-        if(!file_exists($path)){
+        if(!file_exists($path)) {
             touch($path);
         }
         $rs = fopen($path,"a+");
         fwrite($rs,"[".date('Y-m-d H:i:s',time())."] test ok : ".json_encode($data)."\r\n");
         fclose($rs);
-        if(rand(0,2) == 0){
+        if(rand(0,2) == 0) {
             echo "[".date('Y-m-d H:i:s',time())."] ok \r\n";
-        }else{
+        } else {
             echo "[".date('Y-m-d H:i:s',time())."] no \r\n";
             $this->throwOnceFailure('error ');
         }

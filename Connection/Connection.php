@@ -1,13 +1,21 @@
 <?php
 
+namespace QueueTask\Connection;
+use QueueTask\Job\Job;
 
 /**
  * 连接类
  * Class Connection
  */
-abstract class Connection {
+abstract class Connection
+{
 
     protected function __construct(){}
+
+    protected function __clone()
+    {
+        throw new \Exception("This class cannot be cloned" , -101);
+    }
 
     /**
      * 返回存储方式(mysql/redis/file...)

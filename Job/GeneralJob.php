@@ -1,11 +1,13 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Job".DS."Job.php";
-require_once TASK_ROOT_PATH.DS."Handler".DS."JobHandler.php";
-require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
+namespace QueueTask\Job;
 
-class GeneralJob extends Job{
+use QueueTask\Connection\ConnectAdapter;
+use QueueTask\Exception\TaskException;
+use QueueTask\Handler\JobHandler;
+
+class GeneralJob extends Job
+{
 
     public  $connectType = "";  //连接对象（类型）     String
 
@@ -24,7 +26,8 @@ class GeneralJob extends Job{
      * @param String $func        回调类中的回调方法名
      * @param array $param        该回调方法需要的参数数组
      */
-    public function __construct($connectType , $queueName , JobHandler $handler , $func , array $param){
+    public function __construct($connectType , $queueName , JobHandler $handler , $func , array $param)
+    {
         parent::__construct($connectType,$queueName);
 
         $this->init();
@@ -38,7 +41,8 @@ class GeneralJob extends Job{
     /**
      * 初始化默认任务参数
      */
-    public function init(){
+    public function init()
+    {
         $this->isexec = false;
         $this->attempts = 0;
     }

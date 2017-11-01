@@ -1,14 +1,17 @@
 <?php
 
-require_once dirname(dirname(dirname(__FILE__))).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."Redis".DS."RedisDrive.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
+namespace QueueTask\Connection\Redis;
+
+use QueueTask\Config\Config;
+use QueueTask\Connection\Connection;
+use QueueTask\Job\Job;
 
 /**
  * Redis 操作任务类
  * Class RedisConnect
  */
-class RedisConnect extends Connection{
+class RedisConnect extends Connection
+{
 
     /**
      * redis驱动
@@ -21,24 +24,25 @@ class RedisConnect extends Connection{
      * @var RedisConnect
      */
     protected static $instance = null;
-    protected function __construct(){
+    protected function __construct()
+    {
         // 初始化redis连接
         $config = [
-            'host' => REDIS_DB_HOST,
-            'port' => REDIS_DB_PORT,
-            'database' => REDIS_DB_DATABASE
+            'host' => Config::REDIS_DB_HOST,
+            'port' => Config::REDIS_DB_PORT,
+            'database' => Config::REDIS_DB_DATABASE,
+            'password' => Config::REDIS_DB_PASSWORD
         ];
-        if(defined('REDIS_DB_PASSWORD') && REDIS_DB_PASSWORD != '' ){
-            $config = array_merge($config,[REDIS_DB_PASSWORD]);
-        }
         self::$connect = RedisDrive::getInstance($config);
     }
-    public function __destruct(){
+    public function __destruct()
+    {
         $this->close();
         self::$instance = null;
     }
-    public static function getInstance(){
-        if( self::$instance == null ){
+    public static function getInstance()
+    {
+        if( self::$instance == null ) {
             self::$instance = new RedisConnect();
         }
         return self::$instance;
@@ -51,7 +55,7 @@ class RedisConnect extends Connection{
      */
     public function getType()
     {
-        return STORAGE_REDIS;
+        return Config::STORAGE_REDIS;
     }
 
     /**
@@ -68,15 +72,16 @@ class RedisConnect extends Connection{
      * @param $queueName
      * @return Job|null
      */
-    public function pop($queueName){
+    public function pop($queueName)
+    {
         //从延迟集合中合并到主执行队列
         $this->migrateAllExpiredJobs($queueName);
 
         //弹出任务
         $jobstr = self::$connect->lpop($queueName);
-        if(!is_null($jobstr)){
-            return unserialize($jobstr);
-        }else{
+        if(!is_null($jobstr)) {
+            return Job::DecodeJob($jobstr);
+        } else {
             return null;
         }
 
@@ -93,10 +98,10 @@ class RedisConnect extends Connection{
     public function push(Job $job)
     {
         //命令：rpush 队列名 任务
-        $res = self::$connect->rpush($job->queueName , serialize($job));
-        if($res){
+        $res = self::$connect->rpush($job->queueName , Job::EncodeJob($job));
+        if($res) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -113,10 +118,10 @@ class RedisConnect extends Connection{
     public function laterOn($delay, Job $job)
     {
         //命令：zadd  主队列名:delayed   当前时间戳+延迟秒数  任务
-        $res = self::$connect->zadd($job->queueName.":delayed" , time() + $delay , serialize($job));
-        if($res){
+        $res = self::$connect->zadd($job->queueName.":delayed" , time() + $delay , Job::EncodeJob($job));
+        if($res) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
@@ -164,7 +169,8 @@ class RedisConnect extends Connection{
      * @param int $time     超时时间(集合中小于该时间为超时)
      * @return mixed
      */
-    public function getExpiredJobs($name , $time){
+    public function getExpiredJobs($name , $time)
+    {
         return self::$connect->zrangebyscore($name , '-inf' , $time);
     }
 
@@ -175,7 +181,8 @@ class RedisConnect extends Connection{
      * @param  int $time
      * @return void
      */
-    protected function removeExpiredJobs($from, $time){
+    protected function removeExpiredJobs($from, $time)
+    {
         self::$connect->zremrangebyscore($from, '-inf', $time);
     }
 
@@ -188,7 +195,8 @@ class RedisConnect extends Connection{
      * @param  array $jobs
      * @return void
      */
-    protected function pushExpiredJobsOntoNewQueue($to, $jobs){
+    protected function pushExpiredJobsOntoNewQueue($to, $jobs)
+    {
         //等价于  self::$connect->rpush($to,$jobs[0],$jobs[1]... );
         call_user_func_array([self::$connect, 'rpush'], array_merge([$to], $jobs));
     }

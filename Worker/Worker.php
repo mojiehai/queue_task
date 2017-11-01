@@ -1,15 +1,16 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Job".DS."Job.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."Queue.php";
+namespace QueueTask\Worker;
 
+use QueueTask\Queue\Queue;
+use QueueTask\Job\Job;
 
 /**
  * 任务监听
  * Class Worker
  */
-class Worker {
+class Worker
+{
 
     /**
      * 启用一个队列后台监听任务
@@ -20,26 +21,27 @@ class Worker {
      * @param int $sleep 每次检测的时间间隔
      * @param int $delay 失败后延迟的秒数重新入队列
      */
-    public static function listen(Queue $queue, $queueName = 'default', $attempt = 10, $memory = 128, $sleep = 3, $delay = 0){
+    public static function listen(Queue $queue, $queueName = 'default', $attempt = 10, $memory = 128, $sleep = 3, $delay = 0)
+    {
         $job = null;
-        while (true){
+        while (true) {
 
             //弹出任务
             $job = $queue->pop($queueName);
 
-            if($job instanceof Job){
+            if($job instanceof Job) {
 
-                if($attempt > 0 && $job->getAttempts() >= $attempt){
+                if($attempt > 0 && $job->getAttempts() >= $attempt) {
                     //任务失败，触发回调
                     $job->failed();
-                }else{
+                } else {
 
                     $job->execute();
 
                     if (! $job->isExec() ) {
                         //执行失败，重新将任务放入队尾
                         $job->release($delay);
-                    }else{
+                    } else {
                         //任务成功，触发回调
                         $job->success();
                     }
@@ -69,16 +71,20 @@ class Worker {
 
     /**
      * 停止队列监听
+     * @param Queue $queue
      */
-    public static function stop(Queue $queue){
+    public static function stop(Queue $queue)
+    {
         $queue->close();
         die;
     }
 
     /**
      * 休眠
+     * @param int $seconds
      */
-    public static function sleep($seconds){
+    public static function sleep($seconds)
+    {
         sleep($seconds);
     }
 

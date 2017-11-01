@@ -1,25 +1,30 @@
 <?php
 
-require_once dirname(dirname(dirname(__FILE__))).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
+namespace QueueTask\Connection\File;
 
+use QueueTask\Connection\Connection;
+use QueueTask\Job\Job;
 
 /**
  * File 操作任务类
  * Class FileConnect
  */
-class FileConnect extends Connection{
+class FileConnect extends Connection
+{
 
     protected static $instance = null;
-    protected function __construct(){
+    protected function __construct()
+    {
         //TODO  文件操作
     }
-    public function __destruct(){
+    public function __destruct()
+    {
         $this->close();
         self::$instance = null;
     }
-    public static function getInstance(){
-        if( self::$instance == null ){
+    public static function getInstance()
+    {
+        if( self::$instance == null ) {
             self::$instance = new FileConnect();
         }
         return self::$instance;

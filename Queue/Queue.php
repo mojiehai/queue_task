@@ -1,15 +1,18 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
-require_once TASK_ROOT_PATH.DS."Job".DS."GeneralJob.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."QueueInterface.php";
+namespace QueueTask\Queue;
+
+use QueueTask\Connection\Connection;
+use QueueTask\Job\Job;
+use QueueTask\Job\GeneralJob;
+use QueueTask\Handler\JobHandler;
 
 /**
  * 队列实体
  * Class Queue
  */
-abstract class Queue implements QueueInterface{
+abstract class Queue implements QueueInterface
+{
 
     /**
      * 连接对象
@@ -17,7 +20,8 @@ abstract class Queue implements QueueInterface{
      */
     protected static $connection;
 
-    protected function __construct(Connection $connection){
+    protected function __construct(Connection $connection)
+    {
         self::$connection = $connection;
     }
 
@@ -47,7 +51,8 @@ abstract class Queue implements QueueInterface{
      * @param Job $job
      * @return boolean
      */
-    protected function laterPush($delay , Job $job){
+    protected function laterPush($delay , Job $job)
+    {
         return self::$connection->laterOn($delay,$job);
     }
 
@@ -84,7 +89,8 @@ abstract class Queue implements QueueInterface{
     /**
      * 关闭数据库连接
      */
-    public function close(){
+    public function close()
+    {
         self::$connection->close();
     }
 

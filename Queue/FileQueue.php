@@ -1,11 +1,13 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
-require_once TASK_ROOT_PATH.DS."Job".DS."GeneralJob.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."Queue.php";
+namespace QueueTask\Queue;
 
-class FileQueue extends Queue{
+use QueueTask\Config\Config;
+use QueueTask\Connection\Connection;
+use QueueTask\Connection\ConnectAdapter;
+
+class FileQueue extends Queue
+{
 
     /**
      * 连接对象
@@ -19,17 +21,20 @@ class FileQueue extends Queue{
      */
     private static $instance;
 
-    protected function __construct(Connection $connection){
+    protected function __construct(Connection $connection)
+    {
         parent::__construct($connection);
     }
 
-    public function __destruct(){
+    public function __destruct()
+    {
         self::$instance = null;
     }
 
-    public static function getInstance(){
-        if( self::$instance == null ){
-            self::$instance = new FileQueue(ConnectAdapter::getConnection(STORAGE_FILE));
+    public static function getInstance()
+    {
+        if( self::$instance == null ) {
+            self::$instance = new FileQueue(ConnectAdapter::getConnection(Config::STORAGE_FILE));
         }
         return self::$instance;
     }

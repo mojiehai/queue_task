@@ -1,34 +1,38 @@
 <?php
 
-require_once dirname(__FILE__).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."MySqlQueue.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."RedisQueue.php";
-require_once TASK_ROOT_PATH.DS."Queue".DS."FileQueue.php";
+namespace QueueTask;
+
+use QueueTask\Config\Config;
+use QueueTask\Queue\MySqlQueue;
+use QueueTask\Queue\RedisQueue;
+use QueueTask\Queue\FileQueue;
 
 
 /**
  * 获取队列入口
  * Class QueueAdapter
  */
-class QueueAdapter {
+class QueueAdapter
+{
 
     /**
      * 根据配置文件获取队列(存储方式)
      * @return FileQueue|MySqlQueue|null|RedisQueue
      */
-    public static function getQueue(){
+    public static function getQueue()
+    {
 
-        switch(STORAGE_TYPE){
+        switch (Config::getStorageType()) {
 
-            case STORAGE_MYSQL:
+            case Config::STORAGE_MYSQL:
                 return self::getMySqlQueue();
                 break;
 
-            case STORAGE_REDIS:
+            case Config::STORAGE_REDIS:
                 return self::getRedisQueue();
                 break;
 
-            case STORAGE_FILE:
+            case Config::STORAGE_FILE:
                 return self::getFileQueue();
                 break;
 
@@ -43,15 +47,18 @@ class QueueAdapter {
 
     /**************** 手动强制获取队列 *********************/
 
-    public static function getMySqlQueue(){
+    public static function getMySqlQueue()
+    {
         return MySqlQueue::getInstance();
     }
 
-    public static function getRedisQueue(){
+    public static function getRedisQueue()
+    {
         return RedisQueue::getInstance();
     }
 
-    public static function getFileQueue(){
+    public static function getFileQueue()
+    {
         return FileQueue::getInstance();
     }
 

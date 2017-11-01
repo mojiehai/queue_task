@@ -1,0 +1,10 @@
+{
+    "name"  : "mojiehai/queuetask",
+    "require": {
+        "php": ">=5.3"
+    },
+    "autoload": {
+        "psr-4": {"QueueTask\\": "./"}
+    },
+    "version" : "1.0.0"
+}

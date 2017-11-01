@@ -1,15 +1,13 @@
 <?php
 
-
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."Connection.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."ConnectAdapter.php";
+namespace QueueTask\Job;
 
 /**
  * 任务
  * Class Job
  */
-abstract class Job {
+abstract class Job
+{
 
     public    $connectType = "";    //连接对象（类型）
 
@@ -17,7 +15,8 @@ abstract class Job {
 
     public    $checkid = '';        //随机字符串(防止队列唯一)
 
-    public function __construct($connectType , $queueName){
+    public function __construct($connectType , $queueName)
+    {
         $this->connectType = $connectType;
         $this->$queueName  = $queueName;
         $this->checkid     = uniqid(rand(0,9999),true);
@@ -64,5 +63,26 @@ abstract class Job {
      */
     abstract public function release($delay = 0);
 
+
+    /**
+     * 序列化Job对象，用于持久化存储
+     * @param Job $job   Job
+     * @return string
+     */
+    public static function EncodeJob(Job $job)
+    {
+        return base64_encode(serialize($job));
+    }
+
+
+    /**
+     * 反序列化Job对象
+     * @param String $objStr
+     * @return Job
+     */
+    public static function DecodeJob($objStr)
+    {
+        return unserialize(base64_decode($objStr));
+    }
 
 }

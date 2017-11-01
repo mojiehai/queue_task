@@ -1,15 +1,17 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Exception".DS."TaskException.php";
-require_once TASK_ROOT_PATH.DS."Handler".DS."require.php";
+namespace QueueTask\Handler;
+
+use QueueTask\Exception\TaskException;
+use QueueTask\Job\Job;
 
 
 /**
  * 任务回调
  * Class JobHandler
  */
-abstract class JobHandler {
+abstract class JobHandler
+{
 
     /**
      * 回调执行任务方法
@@ -18,7 +20,8 @@ abstract class JobHandler {
      * @param array $data     参数
      * @return mixed
      */
-    public function handler($job , $func , $data){
+    public function handler($job , $func , $data)
+    {
         $this -> $func($job , $data);
     }
 
@@ -59,7 +62,8 @@ abstract class JobHandler {
      * @param int $code
      * @throws TaskException
      */
-    public function throwOnceFailure($msg = "" , $code = 0){
+    public function throwOnceFailure($msg = "" , $code = 0)
+    {
         throw new TaskException($msg,$code);
     }
 

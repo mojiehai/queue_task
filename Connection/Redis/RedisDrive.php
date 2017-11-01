@@ -1,8 +1,9 @@
 <?php
 
-require_once dirname(dirname(dirname(__FILE__))).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Helpers".DS."function.php";
-require_once TASK_ROOT_PATH.DS."Exception".DS."DBException.php";
+namespace QueueTask\Connection\Redis;
+
+use QueueTask\Exception\DBException;
+use QueueTask\Helpers\StringHelpers;
 
 
 /**
@@ -20,7 +21,8 @@ require_once TASK_ROOT_PATH.DS."Exception".DS."DBException.php";
  * $redis -> Set("key","value");   <===>   redis> Set key value
  *
  */
-class RedisDrive {
+class RedisDrive
+{
 
 
     /**
@@ -201,15 +203,21 @@ class RedisDrive {
 
     /************************ 单例 ***************************/
     private static $instance = null;
-    private function __construct(array $config){
+    private function __construct(array $config)
+    {
         $this->hostname = isset($config['host']) ? $config['host'] : $this->hostname;
         $this->port     = isset($config['port']) ? $config['port'] : $this->port;
         $this->database = isset($config['database']) ? $config['database'] : $this->database;
         $this->password = isset($config['password']) ? $config['password'] : $this->password;
     }
-    public function __destruct(){
+    public function __destruct()
+    {
         $this->close();
         self::$instance = null;
+    }
+    protected function __clone()
+    {
+        throw new \Exception("This class cannot be cloned" , -101);
     }
 
     /**
@@ -217,8 +225,9 @@ class RedisDrive {
      * @param array $config
      * @return null|RedisDrive
      */
-    public static function getInstance(array $config = []){
-        if(self::$instance == null){
+    public static function getInstance(array $config = [])
+    {
+        if(self::$instance == null) {
             self::$instance = new RedisDrive($config);
         }
         return self::$instance;
@@ -231,8 +240,9 @@ class RedisDrive {
      * 连接redis(tcp)
      * @throws DBException
      */
-    protected function open(){
-        if(self::$socket !== false){
+    protected function open()
+    {
+        if(self::$socket !== false) {
             return;
         }
         $connection = $this->hostname . ":" . $this->port . ", database=" . $this->database;
@@ -265,7 +275,8 @@ class RedisDrive {
     /**
      * 关闭redis连接
      */
-    public function close(){
+    public function close()
+    {
         if (self::$socket !== false) {
             $this->executeCommand('QUIT');
             stream_socket_shutdown(self::$socket, STREAM_SHUT_RDWR);
@@ -380,7 +391,7 @@ class RedisDrive {
      */
     public function __call($name, $params)
     {
-        $redisCommand = strtoupper(camel2words($name, false));
+        $redisCommand = strtoupper(StringHelpers::Camel2words($name, false));
         if (in_array($redisCommand, $this->redisCommands)) {
             return $this->executeCommand($name, $params);
         } else {

@@ -1,38 +1,42 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."File".DS."FileConnect.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."Redis".DS."RedisConnect.php";
-require_once TASK_ROOT_PATH.DS."Connection".DS."MySql".DS."MySqlConnect.php";
+namespace QueueTask\Connection;
+
+use QueueTask\Config\Config;
+use QueueTask\Connection\File\FileConnect;
+use QueueTask\Connection\MySql\MySqlConnect;
+use QueueTask\Connection\Redis\RedisConnect;
 
 /**
  * 获取任务存储方式
  * Class ConnectAdapter
  */
-class ConnectAdapter {
+class ConnectAdapter
+{
 
     /**
      * 根据配置文件返回任务存储介质
      * @param string $type
      * @return Connection|null
      */
-    public static function getConnection($type = ''){
+    public static function getConnection($type = '')
+    {
 
-        if(empty($type)){
-            $type = STORAGE_TYPE;
+        if(empty($type)) {
+            $type = Config::getStorageType();
         }
 
-        switch($type){
+        switch ($type) {
 
-            case STORAGE_MYSQL:
+            case Config::STORAGE_MYSQL:
                 return self::getMysql();
                 break;
 
-            case STORAGE_REDIS:
+            case Config::STORAGE_REDIS:
                 return self::getRedis();
                 break;
 
-            case STORAGE_FILE:
+            case Config::STORAGE_FILE:
                 return self::getFile();
                 break;
 
@@ -47,7 +51,8 @@ class ConnectAdapter {
     /**
      * @return MySqlConnect
      */
-    public static function getMysql(){
+    public static function getMysql()
+    {
         return MySqlConnect::getInstance();
     }
 
@@ -55,7 +60,8 @@ class ConnectAdapter {
     /**
      * @return RedisConnect
      */
-    public static function getRedis(){
+    public static function getRedis()
+    {
         return RedisConnect::getInstance();
     }
 
@@ -63,7 +69,8 @@ class ConnectAdapter {
     /**
      * @return FileConnect
      */
-    public static function getFile(){
+    public static function getFile()
+    {
         return FileConnect::getInstance();
     }
 

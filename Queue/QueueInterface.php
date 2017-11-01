@@ -1,14 +1,15 @@
 <?php
 
-require_once dirname(dirname(__FILE__)).DIRECTORY_SEPARATOR."Config".DIRECTORY_SEPARATOR."config.php";
-require_once TASK_ROOT_PATH.DS."Job".DS."Job.php";
-require_once TASK_ROOT_PATH.DS."Handler".DS."JobHandler.php";
+namespace QueueTask\Queue;
 
+use QueueTask\Job\Job;
+use QueueTask\Handler\JobHandler;
 /**
  * 队列接口
  * Class Queue
  */
-interface QueueInterface{
+interface QueueInterface
+{
 
 
     /**

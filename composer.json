@@ -3,7 +3,6 @@
     "description": "queue task",
     "license": "MIT",
     "keywords": ["queue task"],
-    "version": "1.0.0",
     "authors": [
         {
             "name": "mojiehai",

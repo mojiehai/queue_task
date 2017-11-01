@@ -26,13 +26,7 @@ class RedisConnect extends Connection
     protected static $instance = null;
     protected function __construct()
     {
-        // 初始化redis连接
-        $config = [
-            'host' => Config::REDIS_DB_HOST,
-            'port' => Config::REDIS_DB_PORT,
-            'database' => Config::REDIS_DB_DATABASE,
-            'password' => Config::REDIS_DB_PASSWORD
-        ];
+        $config = Config::getRedisConfig();
         self::$connect = RedisDrive::getInstance($config);
     }
     public function __destruct()

@@ -205,10 +205,10 @@ class RedisDrive
     private static $instance = null;
     private function __construct(array $config)
     {
-        $this->hostname = isset($config['host']) ? $config['host'] : $this->hostname;
-        $this->port     = isset($config['port']) ? $config['port'] : $this->port;
-        $this->database = isset($config['database']) ? $config['database'] : $this->database;
-        $this->password = isset($config['password']) ? $config['password'] : $this->password;
+        $this->hostname = isset($config['DB_HOST']) ? $config['DB_HOST'] : $this->hostname;
+        $this->port     = isset($config['DB_PORT']) ? $config['DB_PORT'] : $this->port;
+        $this->database = isset($config['DB_DATABASE']) ? $config['DB_DATABASE'] : $this->database;
+        $this->password = isset($config['DB_PASSWORD']) ? $config['DB_PASSWORD'] : $this->password;
     }
     public function __destruct()
     {

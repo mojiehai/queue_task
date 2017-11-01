@@ -51,13 +51,13 @@ class MySqlConnect extends Connection
         if(self::$connect != null) {
             return;
         }
-
+        $config = Config::getMySqlConfig();
         // 初始化mysql连接
-        self::$connect = @mysqli_connect(Config::MYSQL_DB_HOST,Config::MYSQL_DB_USERNAME,Config::MYSQL_DB_PASSWORD,Config::MYSQL_DB_DATABASE,Config::MYSQL_DB_PORT);
+        self::$connect = @mysqli_connect($config['DB_HOST'],$config['DB_USERNAME'],$config['DB_PASSWORD'],$config['DB_DATABASE'],$config['DB_PORT']);
         if(!self::$connect) {
             throw new DBException("MySql Connection Error:".mysqli_connect_error(),mysqli_connect_errno());
         }
-        mysqli_set_charset(self::$connect,Config::MYSQL_DB_CHARSET);
+        mysqli_set_charset(self::$connect,$config['DB_CHARSET']);
     }
 
 

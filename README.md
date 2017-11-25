@@ -113,8 +113,8 @@
 
         $res = QueueAdapter::getQueue();
 
-        //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'a');     //及时入队
-        $r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'a');    //延迟5s入队
+        //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'queueName');     //及时入队
+        $r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queueName');    //延迟5s入队
         
 </pre>
 > * index.php中指定的TestHandler中的test方法被执行

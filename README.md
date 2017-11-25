@@ -1,5 +1,5 @@
 # QueueTask
-易于拓展的队列任务、支持mysql、redis等存储方式
+一个轻量级可拓展的队列任务、暂时支持mysql、redis等存储方式
 
 
 # 目录结构
@@ -7,19 +7,17 @@
 
 |--Config/   配置文件目录
 
-    |--config.php    主配置文件
-  
-    |...    辅助配置文件，可拓展，主配置文件引入该文件
+    |--Config.php    配置文件
   
   
 |--Connection/   链接（mysql、redis等）目录
 
-    |--ConnectAdapter.php    获取链接的入口类
-  
-    |--Connection.php    链接类的基类
+    |--ConnectAdapter.php    获取链接的工厂类
+    
+    |--Connection.php    链接类的基类
   
     |--Mysql/    mysql链接目录
-  
+        
         |--MySqlConnect.php    mysql链接类(继承Connection)
     
     |--Redis/    redis链接目录
@@ -42,8 +40,6 @@
 
     |--JobHandler.php   处理程序类基类
   
-    |--require.php
-  
     |--TestHandler.php    (测试文件，可删除)
   
     |...    其他执行类，只需要继承JobHandler，即可使用
@@ -51,17 +47,17 @@
 
 |--Helpers    辅助目录
 
-    |--function.php   自定义方法
-  
-  
+    |--StringHelpers.php   字符串帮助类
+    
+  
 |--Job    任务目录
 
     |--Job.php    任务基类
   
     |--GeneralJob.php   一般任务类(现在用的任务实体)
   
-    |...    可拓展其他任务类，需要继承Job
-  
+    |...    可拓展其他任务类，需要继承Job，
+    
 
 |--Queue    队列目录
 
@@ -81,9 +77,7 @@
     |--Worker.php   任务监听类
   
   
-|--QueueAdapter.php   获取队列的统一入口类
-
-|--job_queue.sql    MySql任务的表结构
+|--QueueAdapter.php   获取队列的工厂类（获取队列入口）
 
 |--listen.php    (测试文件，可删除)
 
@@ -91,19 +85,38 @@
 
 </pre>
 
-# 使用示例
-## Mysql存储
-> * /Config/config.php中常量STORAGE_TYPE的值指定为STORAGE_MYSQL，/Config/mysql_conf.php中配置好Mysql的相关配置
-> * Mysql添加job_queue表
-> * 用PHP Cli模式运行listen.php，监听mysql任务
-> * 执行index.php添加任务
-> * index.php中指定的TestHandler中的test方法被执行
+# 自动加载
+> * 该项目遵守psr-4自动加载规则，使用Composer下载后，引入autoload.php即可自动加载
 
-## Redis存储
-> * /Config/config.php中常量STORAGE_TYPE的值指定为STORAGE_REDIS，/Config/redis_conf.php中配置好Redis的相关配置
-> * 开启redis-server
-> * 用PHP Cli模式运行listen.php，监听redis任务
-> * 执行index.php添加任务
+# 使用示例
+## Mysql、Redis存储
+> * /Config/Config.php中方法getStorageType()的返回值指定为STORAGE_MYSQL/STORAGE_REDIS，并且配置好Mysql(getMySqlConfig())/Redis(getRedisConfig())的相关配置
+> * 若用Mysql存储，则需要新增job_queue表
+> * 用PHP Cli模式运行listen.php，监听mysql任务，(框架中使用则推荐把该段代码放入一个Controller中，然后由PHP Cli模式运行该控制的该方法，这样即可在Handler中使用框架的其他功能、方法)
+<pre>
+
+        $queueName = "queueName";   //队列名称
+        $attempt   = 3;             //队列任务失败尝试次数，0为不限制
+        $memory    = 128;           //允许使用的最大内存  单位:M
+        $sleep     = 1;             //每次检测的时间间隔
+        $delay     = 3;             //失败后延迟的秒数重新入队列
+        
+        try{
+            Worker::listen(QueueAdapter::getQueue(),$queueName,$attempt,$memory,$sleep,$delay);
+        }catch (Exception $e){
+            echo $e->getCode()." -- ".$e->getFile() . " -- ". $e->getLine() . " : ".$e->getMessage();
+        }
+        
+</pre>
+> * 执行index.php进行任务入队
+<pre>
+
+        $res = QueueAdapter::getQueue();
+
+        //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'a');     //及时入队
+        $r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'a');    //延迟5s入队
+        
+</pre>
 > * index.php中指定的TestHandler中的test方法被执行
 > #### 注：listen.php、index.php、TestHandler.php都只是使用示例，可以直接修改，不影响功能
 

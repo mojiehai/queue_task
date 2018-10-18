@@ -23,6 +23,15 @@ class MySql extends Connection
     //单例对象
     protected static $instance = null;
 
+    /**
+     * 配置参数
+     * MySql constructor.
+     * @param array $config
+     */
+    protected function __construct(array $config = [])
+    {
+        parent::__construct($config);
+    }
 
     /**
      * 初始化连接

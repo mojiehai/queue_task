@@ -24,9 +24,12 @@ class Redis extends Connection
      * @var Redis
      */
     protected static $instance = null;
-    protected function __construct()
+    /**
+     * Connection constructor.
+     * @param array $config 配置参数
+     */
+    protected function __construct($config = [])
     {
-        $config = Config::getRedisConfig();
         self::$connect = RedisDrive::getInstance($config);
     }
 

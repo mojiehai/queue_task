@@ -15,6 +15,15 @@ class File extends Connection
     protected static $instance = null;
 
     /**
+     * File constructor.
+     * @param array $config 配置参数
+     */
+    protected function __construct(array $config = [])
+    {
+        parent::__construct($config);
+    }
+
+    /**
      * 返回存储方式(mysql/redis/file...)
      * @return String
      */

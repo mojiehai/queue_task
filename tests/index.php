@@ -3,9 +3,9 @@
 require "./bootstrap.php";
 
 use Tests\TestHandler;
-use QueueTask\QueueAdapter;
+use QueueTask\Queue\Queue;
 
-$res = QueueAdapter::getQueue();
+$res = Queue::getInstance();
 
 //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'a');
 $r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'a');

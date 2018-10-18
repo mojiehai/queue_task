@@ -13,8 +13,9 @@ abstract class Connection
 
     /**
      * Connection constructor.
+     * @param array $config 配置参数
      */
-    protected function __construct(){}
+    protected function __construct($config = []){}
 
     /**
      * Connection destruct.

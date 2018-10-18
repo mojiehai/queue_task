@@ -6,6 +6,7 @@ use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
 use QueueTask\Job\GeneralJob;
 use QueueTask\Handler\JobHandler;
+use QueueTask\src\Connection\ConnectionFactory;
 
 /**
  * 队列实体
@@ -38,11 +39,17 @@ class Queue implements QueueInterface
         static::$instance = null;
     }
 
+    /**
+     * @return Queue
+     */
     public static function getInstance()
     {
-        $confConnectClass = "";
         if( static::$instance == null ) {
-            static::$instance = new static($confConnectClass::getInstance());
+            try {
+                static::$instance = new static(ConnectionFactory::getInstance());
+            } catch (\Exception $e) {
+
+            }
         }
         return static::$instance;
     }

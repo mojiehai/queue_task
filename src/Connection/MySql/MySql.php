@@ -9,9 +9,9 @@ use QueueTask\Job\Job;
 
 /**
  * MySql 操作任务类
- * Class MySqlConnect
+ * Class MySql
  */
-class MySqlConnect extends Connection
+class MySql extends Connection
 {
 
     //数据表名
@@ -22,24 +22,6 @@ class MySqlConnect extends Connection
 
     //单例对象
     protected static $instance = null;
-    protected function __construct(){}
-    public function __destruct()
-    {
-        $this->close();
-        self::$instance = null;
-    }
-
-    /**
-     * 获取单例
-     * @return MySqlConnect|null
-     */
-    public static function getInstance()
-    {
-        if( self::$instance == null ) {
-            self::$instance = new MySqlConnect();
-        }
-        return self::$instance;
-    }
 
 
     /**

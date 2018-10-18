@@ -7,28 +7,12 @@ use QueueTask\Job\Job;
 
 /**
  * File 操作任务类
- * Class FileConnect
+ * Class File
  */
-class FileConnect extends Connection
+class File extends Connection
 {
 
     protected static $instance = null;
-    protected function __construct()
-    {
-        //TODO  文件操作
-    }
-    public function __destruct()
-    {
-        $this->close();
-        self::$instance = null;
-    }
-    public static function getInstance()
-    {
-        if( self::$instance == null ) {
-            self::$instance = new FileConnect();
-        }
-        return self::$instance;
-    }
 
     /**
      * 返回存储方式(mysql/redis/file...)

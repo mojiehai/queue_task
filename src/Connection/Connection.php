@@ -5,16 +5,46 @@ use QueueTask\Job\Job;
 
 /**
  * 连接类
+ * 增加新的存储介质，需要继承该类
  * Class Connection
  */
 abstract class Connection
 {
 
+    /**
+     * Connection constructor.
+     */
     protected function __construct(){}
 
+    /**
+     * Connection destruct.
+     */
+    public function __destruct()
+    {
+        $this->close();
+        static::$instance = null;
+    }
+
+    /**
+     * 不允许被克隆
+     * @throws \Exception
+     */
     protected function __clone()
     {
         throw new \Exception("This class cannot be cloned" , -101);
+    }
+
+    /**
+     * 获取单例
+     * @param array $config 配置参数
+     * @return Connection|null
+     */
+    public static function getInstance($config = [])
+    {
+        if(!(static::$instance instanceof Connection)) {
+            static::$instance = new static($config);
+        }
+        return static::$instance;
     }
 
     /**

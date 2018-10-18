@@ -8,9 +8,9 @@ use QueueTask\Job\Job;
 
 /**
  * Redis 操作任务类
- * Class RedisConnect
+ * Class Redis
  */
-class RedisConnect extends Connection
+class Redis extends Connection
 {
 
     /**
@@ -21,7 +21,7 @@ class RedisConnect extends Connection
 
     /**
      * 本类单例
-     * @var RedisConnect
+     * @var Redis
      */
     protected static $instance = null;
     protected function __construct()
@@ -29,19 +29,6 @@ class RedisConnect extends Connection
         $config = Config::getRedisConfig();
         self::$connect = RedisDrive::getInstance($config);
     }
-    public function __destruct()
-    {
-        $this->close();
-        self::$instance = null;
-    }
-    public static function getInstance()
-    {
-        if( self::$instance == null ) {
-            self::$instance = new RedisConnect();
-        }
-        return self::$instance;
-    }
-
 
     /**
      * 返回存储方式(mysql/redis/file...)

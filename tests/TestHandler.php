@@ -1,6 +1,8 @@
 <?php
 
-namespace QueueTask\Handler;
+namespace Tests;
+
+use QueueTask\Handler\JobHandler;
 
 class TestHandler extends JobHandler
 {

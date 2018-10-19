@@ -2,6 +2,8 @@
 
 namespace QueueTask\Job;
 
+use QueueTask\Handler\JobHandler;
+
 /**
  * 任务
  * Class Job
@@ -9,17 +11,14 @@ namespace QueueTask\Job;
 abstract class Job
 {
 
-    public    $connectType = "";    //连接对象（类型）
+    public $queueName = "";      //队列名称
 
-    public    $queueName = "";      //队列名称
+    public $checkid = '';        //随机字符串(防止队列唯一)
 
-    public    $checkid = '';        //随机字符串(防止队列唯一)
-
-    public function __construct($connectType , $queueName)
+    public function __construct($queueName, JobHandler $handler , $func , array $param)
     {
-        $this->connectType = $connectType;
         $this->$queueName  = $queueName;
-        $this->checkid     = uniqid(rand(0,9999),true);
+        $this->checkid     = md5($queueName . uniqid(rand(0,9999),true));
     }
 
     /**
@@ -27,8 +26,6 @@ abstract class Job
      * @return int
      */
     abstract public function getAttempts();
-
-
 
     /**
      * 任务失败回调
@@ -69,7 +66,7 @@ abstract class Job
      * @param Job $job   Job
      * @return string
      */
-    public static function EncodeJob(Job $job)
+    public static function Encode(Job $job)
     {
         return base64_encode(serialize($job));
     }
@@ -80,7 +77,7 @@ abstract class Job
      * @param String $objStr
      * @return Job
      */
-    public static function DecodeJob($objStr)
+    public static function Decode($objStr)
     {
         return unserialize(base64_decode($objStr));
     }

@@ -21,12 +21,21 @@ interface QueueInterface
 
 
     /**
-     * 入队列(内部)
+     * 入队列
      * @param Job $job
-     * @param String $queueName    队列名称
+     * @param String $queueName 队列名
      * @return boolean
      */
-    //public function push(Job $job , $queueName);
+    public function push(Job $job, $queueName);
+
+    /**
+     * 延迟入队列
+     * @param int $delay 延迟时间/秒
+     * @param Job $job
+     * @param String $queueName 队列名
+     * @return boolean
+     */
+    public function laterPush($delay, Job $job, $queueName);
 
 
     /**

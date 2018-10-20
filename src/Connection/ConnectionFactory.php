@@ -1,22 +1,22 @@
 <?php
 
-namespace QueueTask\src\Connection;
+namespace QueueTask\Connection;
 
 
 use QueueTask\Config\Config;
-use QueueTask\Connection\Connection;
 
 class ConnectionFactory
 {
 
     /**
      * 获取链接对象
+     * @param string $connectName 链接方式
      * @return Connection
      * @throws \Exception
      */
-    public static function getInstance()
+    public static function getInstance($connectName)
     {
-        $connect = Config::getConnection();
+        $connect = Config::getConnection($connectName);
         if (empty($connect) || !isset($connect['class']) || empty($connect['class'])) {
             throw new \Exception('There is no link available type', 102);
         } else {

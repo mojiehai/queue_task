@@ -42,7 +42,7 @@ class MySql extends Connection
         if(self::$connect != null) {
             return;
         }
-        $config = Config::getMySqlConfig();
+        $config = $this->config;
         // 初始化mysql连接
         self::$connect = @mysqli_connect($config['DB_HOST'],$config['DB_USERNAME'],$config['DB_PASSWORD'],$config['DB_DATABASE'],$config['DB_PORT']);
         if(!self::$connect) {
@@ -51,15 +51,6 @@ class MySql extends Connection
         mysqli_set_charset(self::$connect,$config['DB_CHARSET']);
     }
 
-
-    /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
-     */
-    public function getType()
-    {
-        return Config::STORAGE_MYSQL;
-    }
 
     /**
      * 关闭连接
@@ -87,7 +78,7 @@ class MySql extends Connection
         if($res) {
             $result = mysqli_fetch_assoc($res);
             if($result) {
-                $job = Job::DecodeJob($result['job']);
+                $job = Job::Decode($result['job']);
 
                 //删除该任务
                 $delsql = 'DELETE FROM `'.self::TABLE_NAME.'` WHERE `id` = '.$result['id'];
@@ -108,15 +99,15 @@ class MySql extends Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function push(Job $job)
+    public function push(Job $job, $queueName)
     {
         $currtime = date('Y-m-d H:i:s',time());
-        $queueName = $job->queueName;
         $createtime = $currtime;
         $wantexectime = $currtime;
-        $jobstr = Job::EncodeJob($job);
+        $jobstr = Job::Encode($job);
 
         $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
         return $this->executeSql($sql);
@@ -126,15 +117,15 @@ class MySql extends Connection
      * 添加一条延迟任务
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function laterOn($delay, Job $job)
+    public function laterOn($delay, Job $job, $queueName)
     {
         $currtime = date('Y-m-d H:i:s',time());
-        $queueName = $job->queueName;
         $createtime = $currtime;
         $wantexectime = date('Y-m-d H:i:s',time() + $delay);
-        $jobstr = Job::EncodeJob($job);
+        $jobstr = Job::Encode($job);
 
         $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
         return $this->executeSql($sql);

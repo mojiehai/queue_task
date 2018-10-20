@@ -46,17 +46,18 @@ class Config
     /**
      * @var string 当前使用的链接
      */
-    protected static $currentConnect = 'Redis';
+    public static $currentConnect = 'Redis';
 
 
     /**
      * 当前存储方式
+     * @param string $currentConnect 当前存储方式
      * @return array
      */
-    public static function getConnection()
+    public static function getConnection($currentConnect)
     {
-        if (isset(static::$connectRegister[static::$currentConnect])) {
-            return static::$connectRegister[static::$currentConnect];
+        if (isset(static::$connectRegister[$currentConnect])) {
+            return static::$connectRegister[$currentConnect];
         } else {
             return [];
         }

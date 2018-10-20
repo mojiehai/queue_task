@@ -20,30 +20,30 @@ abstract class JobHandler
      * @param array $data     参数
      * @return mixed
      */
-    public function handler($job , $func , $data)
+    public function handler($job, $func, $data)
     {
-        $this -> $func($job , $data);
+        $this->$func($job, $data);
     }
 
 
     /**
      * 失败回调方法
-     * @param $job      任务
-     * @param $func     执行的方法
-     * @param $data     参数
+     * @param Job $job 任务
+     * @param string $func 执行的方法
+     * @param array $data 参数
      * @return mixed
      */
-    abstract public function failed($job , $func , $data);
+    abstract public function failed($job, $func, $data);
 
 
     /**
      * 任务成功回调
-     * @param $job      任务
-     * @param $func     执行的方法
-     * @param $data     参数
+     * @param Job $job 任务
+     * @param string $func 执行的方法
+     * @param array $data 参数
      * @return mixed
      */
-    abstract public function success($job , $func , $data);
+    abstract public function success($job, $func, $data);
 
 
     /**
@@ -64,7 +64,7 @@ abstract class JobHandler
      */
     public function throwOnceFailure($msg = "" , $code = 0)
     {
-        throw new TaskException($msg,$code);
+        throw new TaskException($msg, $code);
     }
 
 } 

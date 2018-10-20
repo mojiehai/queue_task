@@ -2,68 +2,150 @@
 
 namespace QueueTask\Job;
 
+use QueueTask\Exception\TaskException;
 use QueueTask\Handler\JobHandler;
+use QueueTask\Queue\Queue;
 
-/**
- * 任务
- * Class Job
- */
-abstract class Job
+class Job
 {
+    /**
+     * @var string 随机字符串(防止队列唯一)
+     */
+    protected $checkid = '';
 
-    public $queueName = "";      //队列名称
 
-    public $checkid = '';        //随机字符串(防止队列唯一)
+    /**
+     * @var JobHandler job handler
+     */
+    protected $handler;
+    /**
+     * @var String 执行的方法
+     */
+    protected $func;
+    /**
+     * @var array 执行方法的参数
+     */
+    protected $param;
+    /**
+     * @var boolean 是否执行成功
+     */
+    protected $isexec;
+    /**
+     * @var int 已经执行次数
+     */
+    protected $attempts;
 
-    public function __construct($queueName, JobHandler $handler , $func , array $param)
+    /**
+     * @param JobHandler $handler 回调类
+     * @param String $func        回调类中的回调方法名
+     * @param array $param        该回调方法需要的参数数组
+     */
+    public function __construct(JobHandler $handler , $func , array $param)
     {
-        $this->$queueName  = $queueName;
-        $this->checkid     = md5($queueName . uniqid(rand(0,9999),true));
+        $this->checkid = $this->getCheckId();
+
+        $this->handler = $handler;
+        $this->func = $func;
+        $this->param = $param;
+
+        $this->init();
+    }
+
+    /**
+     * 生成checkId
+     * @return string
+     */
+    protected function getCheckId()
+    {
+        return md5(uniqid(rand(0,9999),true));
+    }
+
+    /**
+     * 初始化默认任务参数
+     */
+    public function init()
+    {
+        $this->isexec = false;
+        $this->attempts = 0;
     }
 
     /**
      * 该任务已经执行的次数
      * @return int
      */
-    abstract public function getAttempts();
+    public function getAttempts()
+    {
+        return $this->attempts;
+    }
+
 
     /**
      * 任务失败回调
      * @return void
      */
-    abstract public function failed();
+    public function failed()
+    {
+        $this -> handler -> failed($this,$this->func,$this->param);
+    }
 
     /**
      * 任务成功回调
      * @return void
      */
-    abstract public function success();
+    public function success()
+    {
+        $this -> handler -> success($this,$this->func,$this->param);
+    }
 
     /**
      * 执行任务
-     * @return mixed
+     * @return void
      */
-    abstract public function execute();
+    public function execute()
+    {
+        $this -> attempts ++;
+        try{
+
+            //执行handler回调
+            $this->handler->handler($this,$this->func,$this->param);
+
+            $this->isexec = true;
+
+        }catch (TaskException $e){
+
+            $this -> isexec = false;
+
+        }
+
+    }
 
 
     /**
      * 任务是否执行成功
      * @return boolean
      */
-    abstract public function isExec();
+    public function isExec()
+    {
+        return $this->isexec;
+    }
 
 
     /**
      * 重试该任务
-     * @param int $delay   延迟秒数
-     * @return mixed
+     * @param Queue $queue 队列
+     * @param string $queueName 队列名
+     * @param int $delay 延迟秒数
+     * @return boolean
      */
-    abstract public function release($delay = 0);
+    public function release(Queue $queue, $queueName, $delay = 0)
+    {
+        return $queue->laterPush($delay, $this, $queueName);
+    }
 
 
     /**
-     * 序列化Job对象，用于持久化存储
-     * @param Job $job   Job
+     * 序列化对象
+     * @param Job $job
      * @return string
      */
     public static function Encode(Job $job)
@@ -73,13 +155,13 @@ abstract class Job
 
 
     /**
-     * 反序列化Job对象
-     * @param String $objStr
+     * 反序列化对象
+     * @param string $jobStr
      * @return Job
      */
-    public static function Decode($objStr)
+    public static function Decode($jobStr)
     {
-        return unserialize(base64_decode($objStr));
+        return unserialize(base64_decode($jobStr));
     }
 
 }

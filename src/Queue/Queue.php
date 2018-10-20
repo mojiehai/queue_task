@@ -2,11 +2,11 @@
 
 namespace QueueTask\Queue;
 
+use QueueTask\Config\Config;
 use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
-use QueueTask\Job\GeneralJob;
 use QueueTask\Handler\JobHandler;
-use QueueTask\src\Connection\ConnectionFactory;
+use QueueTask\Connection\ConnectionFactory;
 
 /**
  * 队列实体
@@ -16,14 +16,14 @@ class Queue implements QueueInterface
 {
 
     /**
-     * @var Queue 单例对象
+     * @var array [Queue] 单例对象数组
      */
-    protected static $instance;
+    protected static $instances;
 
     /**
      * @var Connection 连接对象
      */
-    protected static $connection;
+    protected $connection;
 
     /**
      * Queue constructor.
@@ -31,27 +31,39 @@ class Queue implements QueueInterface
      */
     protected function __construct(Connection $connection)
     {
-        static::$connection = $connection;
+        $this->connection = $connection;
     }
 
     public function __destruct()
     {
-        static::$instance = null;
+        static::$instances = null;
     }
 
     /**
+     * 不允许被克隆
+     * @throws \Exception
+     */
+    protected function __clone()
+    {
+        throw new \Exception("This class cannot be cloned" , -101);
+    }
+
+    /**
+     * @param string $connectName 链接类型(默认走配置)
      * @return Queue
      */
-    public static function getInstance()
+    public static function getInstance($connectName = '')
     {
-        if( static::$instance == null ) {
+        if (empty($connectName)) {
+            $connectName = Config::$currentConnect;
+        }
+        if (!isset(static::$instances[$connectName]) || !(static::$instances[$connectName] instanceof Queue)) {
             try {
-                static::$instance = new static(ConnectionFactory::getInstance());
+                static::$instances[$connectName] = new static(ConnectionFactory::getInstance($connectName));
             } catch (\Exception $e) {
-
             }
         }
-        return static::$instance;
+        return static::$instances[$connectName];
     }
 
     /**
@@ -61,28 +73,34 @@ class Queue implements QueueInterface
      */
     public function pop($queueName)
     {
-        return static::$connection->pop($queueName);
+        return $this->connection->pop($queueName);
     }
 
     /**
      * 入队列
      * @param Job $job
+     * @param string $queueName 队列名
      * @return boolean
      */
-    protected function push(Job $job)
+    public function push(Job $job, $queueName)
     {
-        return static::$connection->push($job);
+        return $this->connection->push($job, $queueName);
     }
 
     /**
      * 延迟入队列
-     * @param $delay
+     * @param int $delay 延迟的秒数
      * @param Job $job
+     * @param string $queueName 队列名
      * @return boolean
      */
-    protected function laterPush($delay , Job $job)
+    public function laterPush($delay, Job $job, $queueName)
     {
-        return static::$connection->laterOn($delay,$job);
+        if ($delay <= 0) {
+            return $this->push($job, $queueName);
+        } else {
+            return $this->connection->laterOn($delay, $job, $queueName);
+        }
     }
 
     /**
@@ -95,8 +113,8 @@ class Queue implements QueueInterface
      */
     public function pushOn(JobHandler $handler, $func, array $param, $queueName)
     {
-        $job = new GeneralJob(static::$connection->getType(),$queueName,$handler,$func,$param);
-        return $this->push($job);
+        $job = new Job($handler, $func, $param);
+        return $this->push($job, $queueName);
     }
 
     /**
@@ -110,8 +128,8 @@ class Queue implements QueueInterface
      */
     public function laterOn($delay, JobHandler $handler, $func, array $param, $queueName)
     {
-        $job = new GeneralJob(static::$connection->getType(),$queueName,$handler,$func,$param);
-        return $this->laterPush($delay,$job);
+        $job = new Job($handler, $func, $param);
+        return $this->laterPush($delay,$job, $queueName);
     }
 
 
@@ -120,7 +138,7 @@ class Queue implements QueueInterface
      */
     public function close()
     {
-        static::$connection->close();
+        $this->connection->close();
     }
 
 

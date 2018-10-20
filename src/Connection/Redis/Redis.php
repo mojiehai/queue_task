@@ -33,14 +33,6 @@ class Redis extends Connection
         self::$connect = RedisDrive::getInstance($config);
     }
 
-    /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
-     */
-    public function getType()
-    {
-        return Config::STORAGE_REDIS;
-    }
 
     /**
      * 关闭连接
@@ -64,7 +56,7 @@ class Redis extends Connection
         //弹出任务
         $jobstr = self::$connect->lpop($queueName);
         if(!is_null($jobstr)) {
-            return Job::DecodeJob($jobstr);
+            return Job::Decode($jobstr);
         } else {
             return null;
         }
@@ -74,15 +66,16 @@ class Redis extends Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param string $queueName 队列名称
      * @return boolean
      *
      *
      * 直接压入主执行队列
      */
-    public function push(Job $job)
+    public function push(Job $job, $queueName)
     {
         //命令：rpush 队列名 任务
-        $res = self::$connect->rpush($job->queueName , Job::EncodeJob($job));
+        $res = self::$connect->rpush($queueName , Job::Encode($job));
         if($res) {
             return true;
         } else {
@@ -94,23 +87,22 @@ class Redis extends Connection
      * 添加一条延迟任务
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
+     * @param string $queueName 队列名称
      * @return boolean
      *
      *
      * 放入等待执行任务的有序集合中
      */
-    public function laterOn($delay, Job $job)
+    public function laterOn($delay, Job $job, $queueName)
     {
         //命令：zadd  主队列名:delayed   当前时间戳+延迟秒数  任务
-        $res = self::$connect->zadd($job->queueName.":delayed" , time() + $delay , Job::EncodeJob($job));
+        $res = self::$connect->zadd($queueName.":delayed" , time() + $delay , Job::Encode($job));
         if($res) {
             return true;
         } else {
             return false;
         }
     }
-
-
 
 
     /**

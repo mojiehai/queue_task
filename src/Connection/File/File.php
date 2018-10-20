@@ -23,14 +23,6 @@ class File extends Connection
         parent::__construct($config);
     }
 
-    /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
-     */
-    public function getType()
-    {
-        // TODO: Implement getType() method.
-    }
 
     /**
      * 关闭连接
@@ -54,9 +46,10 @@ class File extends Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function push(Job $job)
+    public function push(Job $job, $queueName)
     {
         // TODO: Implement push() method.
     }
@@ -65,9 +58,10 @@ class File extends Connection
      * 添加一条延迟任务
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function laterOn($delay, Job $job)
+    public function laterOn($delay, Job $job, $queueName)
     {
         // TODO: Implement laterOn() method.
     }

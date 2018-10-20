@@ -10,12 +10,15 @@ use QueueTask\Job\Job;
  */
 abstract class Connection
 {
+    protected $config = [];
 
     /**
      * Connection constructor.
      * @param array $config 配置参数
      */
-    protected function __construct($config = []){}
+    protected function __construct($config = []){
+        $this->config = $config;
+    }
 
     /**
      * Connection destruct.
@@ -49,13 +52,6 @@ abstract class Connection
     }
 
     /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
-     */
-    abstract public function getType();
-
-
-    /**
      * 关闭连接
      * @return boolean
      */
@@ -73,17 +69,19 @@ abstract class Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param String $queueName 队列名
      * @return boolean
      */
-    abstract public function push(Job $job);
+    abstract public function push(Job $job, $queueName);
 
 
     /**
      * 添加一条延迟任务
      * @param int $delay    延迟的秒数
      * @param Job $job  任务
+     * @param String $queueName 队列名
      * @return boolean
      */
-    abstract public function laterOn($delay , Job $job);
+    abstract public function laterOn($delay , Job $job, $queueName);
 
 } 

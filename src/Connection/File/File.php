@@ -7,37 +7,22 @@ use QueueTask\Job\Job;
 
 /**
  * File 操作任务类
- * Class FileConnect
+ * Class File
  */
-class FileConnect extends Connection
+class File extends Connection
 {
 
     protected static $instance = null;
-    protected function __construct()
-    {
-        //TODO  文件操作
-    }
-    public function __destruct()
-    {
-        $this->close();
-        self::$instance = null;
-    }
-    public static function getInstance()
-    {
-        if( self::$instance == null ) {
-            self::$instance = new FileConnect();
-        }
-        return self::$instance;
-    }
 
     /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
+     * File constructor.
+     * @param array $config 配置参数
      */
-    public function getType()
+    protected function __construct(array $config = [])
     {
-        // TODO: Implement getType() method.
+        parent::__construct($config);
     }
+
 
     /**
      * 关闭连接
@@ -61,9 +46,10 @@ class FileConnect extends Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function push(Job $job)
+    public function push(Job $job, $queueName)
     {
         // TODO: Implement push() method.
     }
@@ -72,9 +58,10 @@ class FileConnect extends Connection
      * 添加一条延迟任务
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
+     * @param string $queueName 队列名称
      * @return boolean
      */
-    public function laterOn($delay, Job $job)
+    public function laterOn($delay, Job $job, $queueName)
     {
         // TODO: Implement laterOn() method.
     }

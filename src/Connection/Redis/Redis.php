@@ -8,9 +8,9 @@ use QueueTask\Job\Job;
 
 /**
  * Redis 操作任务类
- * Class RedisConnect
+ * Class Redis
  */
-class RedisConnect extends Connection
+class Redis extends Connection
 {
 
     /**
@@ -21,36 +21,18 @@ class RedisConnect extends Connection
 
     /**
      * 本类单例
-     * @var RedisConnect
+     * @var Redis
      */
     protected static $instance = null;
-    protected function __construct()
+    /**
+     * Connection constructor.
+     * @param array $config 配置参数
+     */
+    protected function __construct($config = [])
     {
-        $config = Config::getRedisConfig();
         self::$connect = RedisDrive::getInstance($config);
     }
-    public function __destruct()
-    {
-        $this->close();
-        self::$instance = null;
-    }
-    public static function getInstance()
-    {
-        if( self::$instance == null ) {
-            self::$instance = new RedisConnect();
-        }
-        return self::$instance;
-    }
 
-
-    /**
-     * 返回存储方式(mysql/redis/file...)
-     * @return String
-     */
-    public function getType()
-    {
-        return Config::STORAGE_REDIS;
-    }
 
     /**
      * 关闭连接
@@ -74,7 +56,7 @@ class RedisConnect extends Connection
         //弹出任务
         $jobstr = self::$connect->lpop($queueName);
         if(!is_null($jobstr)) {
-            return Job::DecodeJob($jobstr);
+            return Job::Decode($jobstr);
         } else {
             return null;
         }
@@ -84,15 +66,16 @@ class RedisConnect extends Connection
     /**
      * 压入队列
      * @param Job $job
+     * @param string $queueName 队列名称
      * @return boolean
      *
      *
      * 直接压入主执行队列
      */
-    public function push(Job $job)
+    public function push(Job $job, $queueName)
     {
         //命令：rpush 队列名 任务
-        $res = self::$connect->rpush($job->queueName , Job::EncodeJob($job));
+        $res = self::$connect->rpush($queueName , Job::Encode($job));
         if($res) {
             return true;
         } else {
@@ -104,23 +87,22 @@ class RedisConnect extends Connection
      * 添加一条延迟任务
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
+     * @param string $queueName 队列名称
      * @return boolean
      *
      *
      * 放入等待执行任务的有序集合中
      */
-    public function laterOn($delay, Job $job)
+    public function laterOn($delay, Job $job, $queueName)
     {
         //命令：zadd  主队列名:delayed   当前时间戳+延迟秒数  任务
-        $res = self::$connect->zadd($job->queueName.":delayed" , time() + $delay , Job::EncodeJob($job));
+        $res = self::$connect->zadd($queueName.":delayed" , time() + $delay , Job::Encode($job));
         if($res) {
             return true;
         } else {
             return false;
         }
     }
-
-
 
 
     /**

@@ -1,6 +1,8 @@
 <?php
 
-namespace QueueTask\Handler;
+namespace Tests;
+
+use QueueTask\Handler\JobHandler;
 
 class TestHandler extends JobHandler
 {
@@ -32,7 +34,7 @@ class TestHandler extends JobHandler
 
     public function test($job,$data)
     {
-        $path = dirname(__DIR__).DIRECTORY_SEPARATOR."test.log";
+        $path = __DIR__.DIRECTORY_SEPARATOR."test.log";
         //file_put_contents($path,"[".date('Y-m-d H:i:s',time())."] test ok\r\n");
         if(!file_exists($path)) {
             touch($path);

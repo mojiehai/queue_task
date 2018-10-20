@@ -2,40 +2,62 @@
 
 namespace QueueTask\Job;
 
-use QueueTask\Connection\ConnectAdapter;
 use QueueTask\Exception\TaskException;
 use QueueTask\Handler\JobHandler;
+use QueueTask\Queue\Queue;
 
-class GeneralJob extends Job
+class Job
 {
+    /**
+     * @var string 随机字符串(防止队列唯一)
+     */
+    protected $checkid = '';
 
-    public  $connectType = "";  //连接对象（类型）     String
-
-    private $handler;           //job handler         JobHandler
-    private $isexec;            //是否执行成功         boolean
-    private $attempts;          //已经执行次数         Int
-    private $func;              //执行方法             String
-    private $param;             //执行参数             array
-
-    public $queueName;          //队列名称              String
 
     /**
-     * @param String $connectType 连接对象（类型）
-     * @param String $queueName   队列名称
+     * @var JobHandler job handler
+     */
+    protected $handler;
+    /**
+     * @var String 执行的方法
+     */
+    protected $func;
+    /**
+     * @var array 执行方法的参数
+     */
+    protected $param;
+    /**
+     * @var boolean 是否执行成功
+     */
+    protected $isexec;
+    /**
+     * @var int 已经执行次数
+     */
+    protected $attempts;
+
+    /**
      * @param JobHandler $handler 回调类
      * @param String $func        回调类中的回调方法名
      * @param array $param        该回调方法需要的参数数组
      */
-    public function __construct($connectType , $queueName , JobHandler $handler , $func , array $param)
+    public function __construct(JobHandler $handler , $func , array $param)
     {
-        parent::__construct($connectType,$queueName);
-
-        $this->init();
+        $this->checkid = $this->getCheckId();
 
         $this->handler = $handler;
-        $this->func    = $func;
-        $this->param   = $param;
-        $this->queueName = $queueName;
+        $this->func = $func;
+        $this->param = $param;
+
+        $this->init();
+    }
+
+    /**
+     * 生成checkId
+     * @return string
+     */
+    protected function getCheckId()
+    {
+        return md5(uniqid(rand(0,9999),true));
     }
 
     /**
@@ -77,7 +99,7 @@ class GeneralJob extends Job
 
     /**
      * 执行任务
-     * @return mixed
+     * @return void
      */
     public function execute()
     {
@@ -97,6 +119,7 @@ class GeneralJob extends Job
 
     }
 
+
     /**
      * 任务是否执行成功
      * @return boolean
@@ -109,13 +132,36 @@ class GeneralJob extends Job
 
     /**
      * 重试该任务
+     * @param Queue $queue 队列
+     * @param string $queueName 队列名
      * @param int $delay 延迟秒数
-     * @return mixed
+     * @return boolean
      */
-    public function release($delay = 0)
+    public function release(Queue $queue, $queueName, $delay = 0)
     {
-        return ConnectAdapter::getConnection($this->connectType) -> laterOn($delay , $this);
+        return $queue->laterPush($delay, $this, $queueName);
     }
 
+
+    /**
+     * 序列化对象
+     * @param Job $job
+     * @return string
+     */
+    public static function Encode(Job $job)
+    {
+        return base64_encode(serialize($job));
+    }
+
+
+    /**
+     * 反序列化对象
+     * @param string $jobStr
+     * @return Job
+     */
+    public static function Decode($jobStr)
+    {
+        return unserialize(base64_decode($jobStr));
+    }
 
 }

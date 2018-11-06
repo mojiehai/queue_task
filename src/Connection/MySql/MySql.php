@@ -15,7 +15,7 @@ class MySql extends Connection
 {
 
     //数据表名
-    const TABLE_NAME = "job_queue";
+    public static $TABLE_NAME = "";
 
     //mysql连接
     protected static $connect = null;
@@ -31,6 +31,12 @@ class MySql extends Connection
     protected function __construct(array $config = [])
     {
         parent::__construct($config);
+        if (isset($config['DB_TABLE']) && !empty($config['DB_TABLE'])) {
+            static::$TABLE_NAME = $config['DB_TABLE'];
+        }
+        if (empty(static::$TABLE_NAME)) {
+            throw new DBException("MySql Init Error: config 'DB_TABLE' is empty");
+        }
     }
 
     /**
@@ -72,27 +78,31 @@ class MySql extends Connection
      */
     public function pop($queueName)
     {
-        $date = date('Y-m-d H:i:s',time());
-        $sql = 'SELECT * FROM `'.self::TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantexectime` <= "'.$date.'" ORDER BY `wantexectime` ASC LIMIT 1';
-        $res = $this->executeSql($sql);
-        if($res) {
+        $this->begin();
+        try {
+            $date = date('Y-m-d H:i:s',time());
+            $sql = 'SELECT * FROM `'.static::$TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantExecTime` <= "'.$date.'" ORDER BY `wantExecTime` ASC LIMIT 1 FOR UPDATE';
+            $res = $this->executeSql($sql);
+            if (!($res instanceof \mysqli_result)) {
+                throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
+            }
+
+            $job = null;
             $result = mysqli_fetch_assoc($res);
             if($result) {
-                $job = Job::Decode($result['job']);
-
                 //删除该任务
-                $delsql = 'DELETE FROM `'.self::TABLE_NAME.'` WHERE `id` = '.$result['id'];
-                $res2 = $this->executeSql($delsql);
-                if($res2) {
-                    return $job;
-                } else {
-                    return null;
+                if(!($this->delete(['id' => $result['id']]))) {
+                    throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
                 }
-            } else {
-                return null;
+                $job = Job::Decode($result['job']);
             }
-        } else {
-            return null;
+
+            $this->commit();
+            return $job;
+
+        } catch (\Exception $e) {
+            $this->rollback();
+            throw $e;
         }
     }
 
@@ -104,13 +114,18 @@ class MySql extends Connection
      */
     public function push(Job $job, $queueName)
     {
-        $currtime = date('Y-m-d H:i:s',time());
-        $createtime = $currtime;
-        $wantexectime = $currtime;
-        $jobstr = Job::Encode($job);
+        $timestamp = time();
+        $currTime = date('Y-m-d H:i:s', $timestamp);
+        $createTime = $currTime;
+        $wantExecTime = $currTime;
+        $jobStr = Job::Encode($job);
 
-        $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
-        return $this->executeSql($sql);
+        return $this->insert([
+            'queueName' => $queueName,
+            'createTime' => $createTime,
+            'job' => $jobStr,
+            'wantExecTime' => $wantExecTime,
+        ]);
     }
 
     /**
@@ -122,22 +137,93 @@ class MySql extends Connection
      */
     public function laterOn($delay, Job $job, $queueName)
     {
-        $currtime = date('Y-m-d H:i:s',time());
-        $createtime = $currtime;
-        $wantexectime = date('Y-m-d H:i:s',time() + $delay);
-        $jobstr = Job::Encode($job);
+        $timestamp = time();
+        $currTime = date('Y-m-d H:i:s', $timestamp);
+        $createTime = $currTime;
+        $wantExecTime = date('Y-m-d H:i:s',$timestamp + $delay);
+        $jobStr = Job::Encode($job);
 
-        $sql = 'INSERT INTO `'.self::TABLE_NAME.'` (`queueName`,`createtime`,`job`,`wantexectime`) VALUES ("'.$queueName.'","'.$createtime.'",\''.$jobstr.'\',"'.$wantexectime.'");';
-        return $this->executeSql($sql);
+        return $this->insert([
+            'queueName' => $queueName,
+            'createTime' => $createTime,
+            'job' => $jobStr,
+            'wantExecTime' => $wantExecTime,
+        ]);
     }
 
+    /**
+     * 开启事务
+     */
+    protected function begin()
+    {
+        $this->executeSql('begin');
+    }
+
+    /**
+     * 回滚事务
+     */
+    protected function rollback()
+    {
+        $this->executeSql('rollback');
+    }
+
+    /**
+     * 提交事务
+     */
+    protected function commit()
+    {
+        $this->executeSql('commit');
+    }
+
+    /**
+     * 往数据库添加任务记录
+     * @param $data
+     * @return bool
+     */
+    protected function insert($data)
+    {
+        if (empty($data)) {
+            return false;
+        } else {
+            $keys = [];
+            $values = [];
+            foreach ($data as $k => $v) {
+                $keys[] = '`'.$k.'`';
+                $values[] = '"'.$v.'"';
+            }
+            $sql = 'INSERT INTO `'.static::$TABLE_NAME.'` ('.implode(',', $keys).') VALUES ('.implode(',', $values).');';
+            return $this->executeSql($sql);
+        }
+    }
+
+
+    /**
+     * 删除数据库任务
+     * @param $where
+     * @return bool|\mysqli_result
+     */
+    protected function delete($where)
+    {
+        if (empty($where)) {
+            return false;
+        } else {
+            $tempWhere = [];
+            foreach ($where as $k => $v) {
+                $tempWhere[] = '`'.$k.'` = "'.$v.'"';
+            }
+            $whereStr = implode(' AND ', $tempWhere);
+            //删除该任务
+            $delSql = 'DELETE FROM `'.static::$TABLE_NAME.'` WHERE '.$whereStr;
+            return $this->executeSql($delSql);
+        }
+    }
 
     /**
      * 执行sql
      * @param $sql
      * @return bool|\mysqli_result
      */
-    private function executeSql($sql)
+    protected function executeSql($sql)
     {
         $this->open();
         return mysqli_query(self::$connect,$sql);

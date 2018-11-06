@@ -20,10 +20,11 @@ class Config
             'config' => [
                 'DB_HOST'       => '127.0.0.1',     //数据库地址
                 'DB_PORT'       => '3306',          //数据库端口
-                'DB_DATABASE'   => 'test',          //数据库名称
-                'DB_CHARSET'    => 'utf8',          //数据库字符集
                 'DB_USERNAME'   => 'root',          //用户名
                 'DB_PASSWORD'   => 'root',          //密码
+                'DB_CHARSET'    => 'utf8',          //数据库字符集
+                'DB_DATABASE'   => 'test',          //数据库名称
+                'DB_TABLE'      => 'job_queue',     //表名称
             ],
         ],
 
@@ -46,7 +47,7 @@ class Config
     /**
      * @var string 当前使用的链接
      */
-    public static $currentConnect = 'Redis';
+    public static $currentConnect = 'MySql';
 
 
     /**

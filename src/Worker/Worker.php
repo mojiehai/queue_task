@@ -48,9 +48,10 @@ class Worker
                         $job->release($queue, $queueName, $delay);
                     }
                 }
+            } else {
+                // 如果队列没有任务，就等待指定间隔时间
+                self::sleep($sleep);
             }
-
-            self::sleep($sleep);
 
             if (self::memoryExceeded($memory)) {
                 self::stop($queue);

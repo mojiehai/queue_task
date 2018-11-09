@@ -15,7 +15,7 @@ $config = [
     'delay' => 3,       //失败后延迟的秒数重新入队列
 
     'checkWorkerInterval' => 10,    // 10秒检测一次进程
-    'maxWorkerNum' => 2,    //2个进程
+    'maxWorkerNum' => 1,    //2个进程
 ];
 $file = __DIR__.DIRECTORY_SEPARATOR.'test.log.';
 
@@ -46,6 +46,9 @@ if(php_sapi_name() == 'cli') {
             ->setWork(
                 function(Process $process) use ($file){
                     file_put_contents($file.$process->pid.'.'.time(), $process->pid);
+                    while(true) {
+                        sleep(10);
+                    }
                 })
             ->run();
     } catch (Exception $e) {

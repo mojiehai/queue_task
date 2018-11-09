@@ -86,7 +86,8 @@ class Manage
             case '-d':      // 守护进程方式启动
                 break;
             case '':        // 直接启动
-                (Master::Create())->setConfig($this->config)->setWork($this->closure)->run();
+                $master = Master::Create();
+                $master->setConfig($this->config)->setWork($this->closure)->run();
                 break;
             default:        // 命令错误
                 $this->showCommandErrors($com2);

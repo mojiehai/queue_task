@@ -215,7 +215,8 @@ class Master extends Process
                 $this->addWorker($workerPid);
             } else if ($workerPid == 0) {
                 // 该分支为子进程
-                (Worker::Create())->setConfig($this->config)->setWork($this->closure)->run();
+                $worker = Worker::Create();
+                $worker->setConfig($this->config)->setWork($this->closure)->run();
                 exit();
             } else {
                 // fork失败

@@ -167,7 +167,8 @@ abstract class Process
     protected function runHandler()
     {
         if (is_callable($this->closure)) {
-            ($this->closure)($this);
+            $closure = $this->closure;
+            $closure($this);
         }
     }
 

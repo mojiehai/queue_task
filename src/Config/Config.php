@@ -24,7 +24,7 @@ class Config
                 'DB_PASSWORD'   => 'root',          //密码
                 'DB_CHARSET'    => 'utf8',          //数据库字符集
                 'DB_DATABASE'   => 'test',          //数据库名称
-                'DB_TABLE'      => 'job_queue',     //表名称
+                'DB_TABLE'      => 'job_queue',     //表名称1
             ],
         ],
 

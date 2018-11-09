@@ -11,11 +11,13 @@ class Worker extends Process
 {
 
     /**
-     * 进程执行的内容
-     * @return void
+     * Worker constructor.
+     * @param int $pid
      */
-    function run()
+    protected function __construct($pid = 0)
     {
-        echo $this->title.':'.$this->pid;
+        parent::__construct($pid);
     }
+
+
 }

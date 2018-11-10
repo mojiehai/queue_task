@@ -3,6 +3,8 @@
 namespace QueueTask\Process;
 
 
+use QueueTask\Exception\ProcessException;
+
 class Manage
 {
 
@@ -98,17 +100,40 @@ class Manage
     /**
      * stop命令动作
      * @return void
+     * @throws ProcessException
      */
     protected function stop()
     {
+        $masterPid = Master::getPidByFile();
+        if (Process::isAlive($masterPid)) {
+            //if (posix_kill($masterPid, SIGUSR2)) {
+            if (posix_kill($masterPid, SIGUSR2)) {
+                echo 'stop'.PHP_EOL;
+            } else {
+                throw new ProcessException('stop failure');
+            }
+        } else {
+            throw new ProcessException('process is not exists!');
+        }
     }
 
     /**
      * restart命令动作
      * @return void
+     * @throws ProcessException
      */
     protected function restart()
     {
+        $masterPid = Master::getPidByFile();
+        if (Process::isAlive($masterPid)) {
+            if (posix_kill($masterPid, SIGUSR1)) {
+                echo 'restart';
+            } else {
+                throw new ProcessException('restart failure');
+            }
+        } else {
+            throw new ProcessException('process is not exists!');
+        }
     }
     ################################## command action ####################################
 
@@ -135,7 +160,7 @@ class Manage
     protected function showHelps()
     {
         $str = "";
-        $str .= "Usage: queue_task <start|stop|restart> [-d]\n";
+        $str .= "Usage: ".$_SERVER['PHP_SELF']." <start|stop|restart> [-d]\n";
         echo $str;
     }
 

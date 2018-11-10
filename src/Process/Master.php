@@ -2,6 +2,7 @@
 
 namespace QueueTask\Process;
 use QueueTask\Exception\ProcessException;
+use QueueTask\Helpers\Log;
 
 /**
  * 主进程类
@@ -120,7 +121,7 @@ class Master extends Process
      * @return int pid
      * @throws ProcessException
      */
-    protected static function getPidByFile()
+    public static function getPidByFile()
     {
         static::initPidFile();
         return intval(file_get_contents(static::$pidFilePath));
@@ -167,14 +168,43 @@ class Master extends Process
             }
         }
     }
+
+    /**
+     * 停止子进程(给子进程发送停止信号SIGTERM)
+     * @param int $workerPid 子进程pid，为0则为所有子进程
+     * @return bool
+     */
+    protected function stopWorkers($workerPid = 0)
+    {
+        var_dump($this->workers);
+        if ($workerPid == 0) {
+            $isStop = true;
+            foreach ($this->workers as $k => $v) {
+                //if ($res = posix_kill($v, SIGTERM)) {
+                //if ($res = posix_kill($v, SIGKILL)) {
+                if ($res = posix_kill($v, SIGUSR2)) {
+                    Log::info('master kill '.$v.' , return '.var_export($res, true));
+                    pcntl_signal_dispatch();
+                    unset($this->workers[$k]);
+                } else {
+                    // log
+                    // kill child $v faild
+                    $isStop = false;
+                }
+            }
+            var_dump($this->workers, $isStop);
+            return $isStop;
+        } else {
+            return posix_kill($workerPid, SIGTERM);
+        }
+    }
     ############################## 子进程操作 ###############################
 
 
 
     /**
-     * 进程执行的内容
+     * 工作开始
      * @return void
-     * @throws ProcessException
      */
     protected function runHandler()
     {
@@ -182,47 +212,115 @@ class Master extends Process
 
         posix_kill($this->pid, SIGALRM);
         while (true) {
+            echo 'aaa'.PHP_EOL;
             pcntl_signal_dispatch();
+            echo 'bbb'.PHP_EOL;
             pcntl_wait($status, WUNTRACED);//不阻塞
+            //pcntl_waitpid($this->pid, $status, WNOHANG);//不阻塞
+            echo 'ccc'.PHP_EOL;
+            if ($this->isWorkExpectStop()) {
+                echo 'exit';
+                exit();
+            } else {
+                echo 'status: '.$this->status.PHP_EOL;
+            }
+            //sleep(1);
         }
     }
 
+    ########################## 信号处理程序 ##############################
     /**
      * 添加信号
      */
     protected function setSignal()
     {
-        // 1、闹钟信号
-        pcntl_signal(SIGALRM, [$this, 'sigalrmHandler'], false);
+        // 1、闹钟信号(检测子进程,进程数不足则启动子进程)
+        pcntl_signal(SIGALRM, [$this, 'checkHandler'], false);
+
+        // 2、重启信号
+        pcntl_signal(SIGUSR1, [$this, 'restartHandler'], false);
+
+        // 3、停止信号
+        pcntl_signal(SIGUSR2, [$this, 'stopHandler'], false);
+        // SIGTERM 程序结束(terminate、信号, 与SIGKILL不同的是该信号可以被阻塞和处理.
+        // 通常用来要求程序自己正常退出. shell命令kill缺省产生这个信号.
+        pcntl_signal(SIGTERM, [$this, 'stopHandler'], false);
+        // 程序终止(interrupt、信号, 在用户键入INTR字符(通常是Ctrl-C、时发出
+        pcntl_signal(SIGINT, [$this, 'stopHandler'], false);
+        Log::info('setSignal');
+        var_dump(\pcntl_signal_get_handler(SIGUSR2));die;
     }
 
 
-
-
-    ########################## 信号处理程序 ##############################
     /**
      * 闹钟信号处理程序(检测子进程数)
      * @throws ProcessException
      */
-    protected function sigalrmHandler()
+    protected function checkHandler()
     {
-        pcntl_alarm($this->checkWorkerInterval);    // 设置下次轮询的闹钟
-        // 循环开启子进程
-        while($this->isAddWorker()) {
-            $workerPid = pcntl_fork();  // 开启子进程
-            if ($workerPid > 0) {
-                // 该分支为父进程
-                $this->addWorker($workerPid);
-            } else if ($workerPid == 0) {
-                // 该分支为子进程
-                $worker = Worker::Create();
-                $worker->setConfig($this->config)->setWork($this->closure)->run();
-                exit();
-            } else {
-                // fork失败
-                throw new ProcessException('fork process error');
+        if ($this->status == self::STATUS_RUN) {
+            pcntl_alarm($this->checkWorkerInterval);    // 设置下次轮询的闹钟
+            // 循环开启子进程
+            while ($this->isAddWorker()) {
+                $workerPid = pcntl_fork();  // 开启子进程
+                if ($workerPid > 0) {
+                    // 该分支为父进程
+                    $this->addWorker($workerPid);
+                } else if ($workerPid == 0) {
+                    try {
+                        // 该分支为子进程
+
+                        //设置默认文件权限
+                        umask(022);
+                        //将当前工作目录更改为根目录
+                        chdir('/');
+                        //关闭文件描述符
+                        fclose(STDIN);
+                        fclose(STDOUT);
+                        fclose(STDERR);
+                        //重定向输入输出
+                        global $STDOUT, $STDERR;
+                        $STDOUT = fopen('/dev/null', 'a');
+                        $STDERR = fopen('/dev/null', 'a');
+
+                        $worker = Worker::Create();
+                        $worker->setConfig($this->config)->setWork($this->closure)->run();
+                    } catch (\Exception $e){
+                        Log::error($e->getTraceAsString());
+                    } finally {
+                        exit();
+                    }
+                } else {
+                    // fork失败
+                    throw new ProcessException('fork process error');
+                }
             }
         }
+    }
+
+    /**
+     * restart信号
+     */
+    protected function restartHandler()
+    {
+        // 停止所有子进程
+        $this->stopWorkers();
+        // 5s后重启启动子进程
+        sleep(5);
+        // 启动检测子进程机制，重启子进程
+        posix_kill($this->pid, SIGALRM);
+    }
+
+    /**
+     * stop信号
+     */
+    protected function stopHandler()
+    {
+        echo 'stopMaster'.PHP_EOL;
+        // 停止所有子进程
+        $this->stopWorkers();
+        // 停止当前进程
+        $this->setWorkStop();
     }
     ########################## 信号处理程序 ##############################
 

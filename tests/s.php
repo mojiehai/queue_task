@@ -15,6 +15,8 @@ switch($cmd){
         }
         //设置默认文件权限
         umask(022);
+        $pid = posix_getpid();
+        /*
         //fork
         $pid = pcntl_fork();
         if($pid < 0){
@@ -34,6 +36,7 @@ switch($cmd){
         global $STDOUT, $STDERR;
         $STDOUT = fopen('/dev/null', 'a');
         $STDERR = fopen('/dev/null', 'a');
+        */
          
         cli_set_process_title('gamelog:master');
         $pid = posix_getpid();
@@ -61,7 +64,7 @@ switch($cmd){
                                 break;
                             }
                             sleep(1);
-                            $i ++;
+                            //$i ++;
                         }
                         exit();
                     } else {

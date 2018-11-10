@@ -144,14 +144,26 @@ abstract class Process
     }
 
     /**
-     * 进程执行的内容
+     * 进程start
      * @return void
      */
     public final function run()
     {
-        $this->status = self::STATUS_RUN;
+        // config 配置初始化
+        $this->configure();
+        // 设置添加信号处理
         $this->setSignal();
+        // 设置运行状态
+        $this->status = self::STATUS_RUN;
+        // 工作开始
         $this->runHandler();
+    }
+
+    /**
+     * 配置初始化
+     */
+    protected function configure()
+    {
     }
 
     /**
@@ -162,15 +174,9 @@ abstract class Process
     }
 
     /**
-     * 进程执行工作回调
+     * 工作开始
      */
-    protected function runHandler()
-    {
-        if (is_callable($this->closure)) {
-            $closure = $this->closure;
-            $closure($this);
-        }
-    }
+    abstract protected function runHandler();
 
 
     /**

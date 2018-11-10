@@ -3,6 +3,8 @@
 namespace QueueTask\Helpers;
 
 
+use QueueTask\Process\Process;
+
 class Log
 {
     /**
@@ -34,11 +36,10 @@ class Log
     protected static function write($type, $msg)
     {
         $logFile = static::getLogFilePath();
-        $pid = posix_getpid();
-        $ppid = posix_getppid();
         $name = cli_get_process_title();
-        $log = '['.$type.']['.date('H:i:s', time()).' --pid:'.$pid.' --ppid:'.$ppid.' --name:'.$name.']：'.
-            PHP_EOL . $msg . PHP_EOL;
+        $name = str_replace(Process::$TITLE_PREFIX, '', $name);
+        $log = '['.$type.']['.$name.' '.date('H:i:s', time()).']：'.
+            $msg . PHP_EOL;
         return file_put_contents($logFile, $log, FILE_APPEND);
     }
 

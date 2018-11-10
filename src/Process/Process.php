@@ -2,6 +2,7 @@
 
 namespace QueueTask\Process;
 
+use QueueTask\Helpers\Log;
 
 /**
  * 进程抽象类
@@ -14,10 +15,11 @@ abstract class Process
     /**
      * worker状态
      */
-    const STATUS_PREPARE = 0;   // 准备
-    const STATUS_RUN = 1;       // 运行
-    const STATUS_SET_STOP = 3;  // 设置停止
-    const STATUS_STOPPED = 4;   // 已经停止
+    const STATUS_PREPARE = 0;       // 准备
+    const STATUS_RUN = 1;           // 运行
+    const STATUS_SET_RESTART = 2;   // 需要重启
+    const STATUS_SET_STOP = 3;      // 需要停止
+    const STATUS_STOPPED = 4;       // 已经停止
 
     /**
      * 进程id
@@ -36,7 +38,13 @@ abstract class Process
      * 进程名称前缀
      * @var string
      */
-    protected $titlePrefix = 'queue_task:';
+    public static $TITLE_PREFIX = 'queue_task:';
+
+    /**
+     * 进程名称后缀
+     * @var string
+     */
+    protected $titleSuffix = '';
 
     /**
      * 进程的实际工作内容
@@ -57,6 +65,18 @@ abstract class Process
     protected $configNameList = [];
 
     /**
+     * 允许配置的基础变量名
+     * @var array
+     */
+    protected $baseConfigNameList = [];
+
+    /**
+     * 允许配置的基础静态变量名
+     * @var array
+     */
+    protected $baseStaticConfigNameList = ['TITLE_PREFIX'];
+
+    /**
      * 原始配置数组
      * @var array
      */
@@ -75,15 +95,27 @@ abstract class Process
         } else {
             $this->pid = $pid;
         }
+    }
 
-        // 设置当前进程名称  queue_task:ClassName
-        if (empty($this->title)) {
-            $className = get_class($this);
-            $className = end(explode('\\', $className));
-            $this->title = $this->titlePrefix . $className;
-        }
+    /**
+     * 初始化进程数据
+     */
+    protected function init()
+    {
+        // 设置进程名称
+        $this->setProcessTitle();
+    }
+
+    /**
+     * 设置当前进程名称  queue_task:ClassName:suffix
+     */
+    protected function setProcessTitle()
+    {
+        $className = get_class($this);
+        $classNameInfoArr = explode('\\', $className);
+        $className = end($classNameInfoArr);
+        $this->title = static::$TITLE_PREFIX . $className . $this->titleSuffix;
         cli_set_process_title($this->title);
-
     }
 
     /**
@@ -93,7 +125,10 @@ abstract class Process
      */
     public static function Create($pid = 0)
     {
-        return new static($pid);
+         $process = new static($pid);
+         $process->init();
+         Log::info('create ok !');
+         return $process;
     }
 
     /**
@@ -104,10 +139,17 @@ abstract class Process
     public function setConfig(array $config)
     {
         $this->config = $config;
+        $configList = array_merge($this->baseConfigNameList, $this->configNameList);
+        $staticConfigList = $this->baseStaticConfigNameList;
         foreach ($config as $k => $v) {
-            if (in_array($k, $this->configNameList)) {
+            if (in_array($k, $configList)) {
                 if (!is_null($v)) {
                     $this->$k = $v;
+                }
+            }
+            if (in_array($k, $staticConfigList)) {
+                if (!is_null($v)) {
+                    static::$$k = $v;
                 }
             }
         }
@@ -127,21 +169,60 @@ abstract class Process
         return $this;
     }
 
+    ###################### 进程状态 #######################
     /**
-     * 设置工作停止
+     * 设置进程需要停止
      */
-    public function setWorkStop()
+    public function setStop()
     {
+        Log::info('stopping ... ');
         $this->status = self::STATUS_SET_STOP;
     }
 
     /**
-     * 判断worker是否准备停止
+     * 判断进程是否准备停止
+     * @return bool
      */
-    public function isWorkExpectStop()
+    public function isExpectStop()
     {
         return $this->status == self::STATUS_SET_STOP;
     }
+
+    /**
+     * 停止当前进程
+     */
+    protected function stop()
+    {
+        Log::info('stopped !!!');
+        exit();
+    }
+
+    /**
+     * 设置进程重新启动
+     */
+    public function setRestart()
+    {
+        Log::info('restarting ... ');
+        $this->status = self::STATUS_SET_RESTART;
+    }
+
+    /**
+     * 判断进程是否准备重启
+     * @return bool
+     */
+    public function isExpectRestart()
+    {
+        return $this->status == self::STATUS_SET_RESTART;
+    }
+
+    /**
+     * 重启当前进程
+     */
+    protected function restart()
+    {
+        Log::info('restarted');
+    }
+    ###################### 进程状态 #######################
 
     /**
      * 进程start
@@ -155,6 +236,7 @@ abstract class Process
         $this->setSignal();
         // 设置运行状态
         $this->status = self::STATUS_RUN;
+        Log::info('running ... ');
         // 工作开始
         $this->runHandler();
     }

@@ -106,7 +106,6 @@ class Manage
     {
         $masterPid = Master::getPidByFile();
         if (Process::isAlive($masterPid)) {
-            //if (posix_kill($masterPid, SIGUSR2)) {
             if (posix_kill($masterPid, SIGUSR2)) {
                 echo 'stop'.PHP_EOL;
             } else {
@@ -127,7 +126,7 @@ class Manage
         $masterPid = Master::getPidByFile();
         if (Process::isAlive($masterPid)) {
             if (posix_kill($masterPid, SIGUSR1)) {
-                echo 'restart';
+                echo 'restart'.PHP_EOL;
             } else {
                 throw new ProcessException('restart failure');
             }

@@ -3,7 +3,6 @@
 namespace QueueTask\Process;
 
 use QueueTask\Exception\ProcessException;
-use QueueTask\Helpers\Log;
 
 /**
  * 工作进程
@@ -57,6 +56,7 @@ class Worker extends Process
     protected function __construct($pid = 0)
     {
         parent::__construct($pid);
+        $this->titleSuffix = ':'.$this->pid;
     }
 
     /**
@@ -78,37 +78,41 @@ class Worker extends Process
     protected function runHandler()
     {
         while (true) {
+            // 执行任务
             $this->execute();
+
+            $time = time();
 
             // 如果设置了预计退出时间，则检测是否需要退出
             if ($this->preExitTime > 0) {
-                if (time() >= $this->preExitTime) {
-                    $this->setWorkStop();
+                if ($time >= $this->preExitTime) {
+                    $this->setStop();
                 }
             }
 
             // 如果限定了工作进程最大工作次数,则判断是否超出最大工作次数
             if ($this->executeTimes > 0) {
                 if ($this->currentExecuteTimes >= $this->executeTimes) {
-                    $this->setWorkStop();
+                    $this->setStop();
                 }
             }
 
             // 检测信号
             pcntl_signal_dispatch();
 
-            // 检测主进程是否存在，不存在则退出自己进程(补救操作)
+            // 检测主进程是否存在，不存在则退出自己进程(补救操作,10s补救操作一次)
             if (
-                (!$this->isWorkExpectStop()) &&
+                $time % 10 == 0 &&
+                (!$this->isExpectStop()) &&
                 (!static::isAlive(Master::getPidByFile()))
             ) {
-                //$this->setWorkStop();
+                // todo 测试结束打开这段
+                //$this->setStop();
             }
 
             // 检测是否退出进程
-            if ($this->isWorkExpectStop()) {
-                Log::info('run stop');
-                exit();
+            if ($this->isExpectStop()) {
+                $this->stop();
             }
 
             // 睡眠
@@ -128,7 +132,7 @@ class Worker extends Process
             $closure($this);
             $this->currentExecuteTimes++;
         } else {
-            $this->setWorkStop();
+            $this->setStop();
         }
     }
 
@@ -152,9 +156,6 @@ class Worker extends Process
         pcntl_signal(SIGTERM, [$this, 'stopHandler'], false);
         // 程序终止(interrupt、信号, 在用户键入INTR字符(通常是Ctrl-C、时发出
         pcntl_signal(SIGINT, [$this, 'stopHandler'], false);
-        pcntl_signal(SIGUSR2, [$this, 'stopHandler'], false);
-
-        Log::info('setSignal worker');
     }
 
     /**
@@ -162,8 +163,8 @@ class Worker extends Process
      */
     protected function stopHandler()
     {
-        Log::info('receive stop');
-        $this->setWorkStop();
+        $this->setStop();
     }
+
 
 }

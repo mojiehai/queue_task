@@ -7,6 +7,7 @@ use QueueTask\Queue\Queue;
 use QueueTask\Process\Manage;
 use QueueTask\Process\Process;
 use QueueTask\Process\Worker as PWorker;
+use QueueTask\Helpers\Log;
 
 $config = [
     'queueName' => 'a', //队列名称
@@ -14,6 +15,9 @@ $config = [
     'memory' => 128,    //允许使用的最大内存  单位:M
     'sleep' => 1,       //每次检测的时间间隔
     'delay' => 3,       //失败后延迟的秒数重新入队列
+
+    // 进程基础配置
+    'TITLE_PREFIX' => 'psh_queue_task:',   // 进程前缀
 
     // master 进程配置
     'checkWorkerInterval' => 60,    // 60秒检测一次进程
@@ -54,8 +58,8 @@ if(php_sapi_name() == 'cli') {
                 function(PWorker $process) use ($file){
                     //file_put_contents($file.$process->pid.'.'.time(), $process->pid);
                     //$res = posix_kill(posix_getpid(), SIGUSR2);
-                    $res = pcntl_signal_get_handler(SIGUSR2);
-                    \QueueTask\Helpers\Log::info('run worker, times: '.$process->getExecuteTimes().'，res：'.var_export($res, true));
+                    //$res = pcntl_signal_get_handler(SIGUSR2);
+                    Log::info('run worker, times: '.$process->getExecuteTimes());
                 })
             ->run();
     } catch (Exception $e) {

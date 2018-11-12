@@ -7,7 +7,8 @@ use QueueTask\Queue\Queue;
 use QueueTask\Process\Manage;
 use QueueTask\Process\Process;
 use QueueTask\Process\Worker as PWorker;
-use QueueTask\Helpers\Log;
+use QueueTask\Log\ProcessLog;
+use QueueTask\Log\WorkLog;
 
 $config = [
     'queueName' => 'a', //队列名称
@@ -17,15 +18,17 @@ $config = [
     'delay' => 3,       //失败后延迟的秒数重新入队列
 
     // 进程基础配置
-    'TITLE_PREFIX' => 'psh_queue_task:',   // 进程前缀
+    'titlePrefix' => 'queue_task',   // 进程前缀
+    'baseTitle' => 'test',  // 进程基础名称
 
     // master 进程配置
-    'checkWorkerInterval' => 60,    // 60秒检测一次进程
-    'maxWorkerNum' => 2,    //1个进程
+    'pidFileDir' => null,           // pid文件根目录
+    'checkWorkerInterval' => 10,    // 300秒检测一次进程
+    'maxWorkerNum' => 2,    //3个进程
 
     // worker 进程配置
     'executeTimes' => 0,    // 任务的最大执行次数
-    'executeUSleep' => 3000000,  // 每次执行任务睡眠时间(微秒) 1s = 1 000 000 us
+    'executeUSleep' => 5000000,  // 每次执行任务睡眠时间(微秒) 1s = 1 000 000 us
     'limitSeconds' => 0,    // 工作进程最大执行时长(秒)
 ];
 $file = __DIR__.DIRECTORY_SEPARATOR.'test.log.';
@@ -52,14 +55,13 @@ if(php_sapi_name() == 'cli') {
             ->run();
         */
 
-        (new Manage())
-            ->setConfig($config)
+        (new Manage($config))
             ->setWork(
                 function(PWorker $process) use ($file){
                     //file_put_contents($file.$process->pid.'.'.time(), $process->pid);
                     //$res = posix_kill(posix_getpid(), SIGUSR2);
                     //$res = pcntl_signal_get_handler(SIGUSR2);
-                    Log::info('run worker, times: '.$process->getExecuteTimes());
+                    WorkLog::info('run worker:'.$process->pid.', times: '.$process->getExecuteTimes());
                 })
             ->run();
     } catch (Exception $e) {

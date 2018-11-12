@@ -2,6 +2,7 @@
 
 namespace QueueTask\Worker;
 
+use QueueTask\Log\WorkLog;
 use QueueTask\Queue\Queue;
 use QueueTask\Job\Job;
 
@@ -11,13 +12,6 @@ use QueueTask\Job\Job;
  */
 class Worker
 {
-    /**
-     * worker状态
-     */
-    const STATUS_PREPARE = 0;   // 准备
-    const STATUS_RUN = 1;       // 运行
-    const STATUS_SET_STOP = 3;  // 设置停止
-    const STATUS_STOPPED = 4;   // 已经停止
 
     /**
      * 队列实例
@@ -26,16 +20,10 @@ class Worker
     protected $queue = null;
 
     /**
-     * worker当前状态
-     * @var int
-     */
-    protected $status = self::STATUS_PREPARE;
-
-    /**
-     * 是否退出监听
+     * 是否退出
      * @var bool
      */
-    protected $isBreak = false;
+    protected $isStop = false;
 
     /**
      * 监听队列的名称(在push的时候把任务推送到哪个队列，则需要监听相应的队列才能获取任务)
@@ -79,7 +67,6 @@ class Worker
      */
     public function __construct(Queue $queue)
     {
-        $this->status = self::STATUS_PREPARE;
         $this->queue = $queue;
     }
 
@@ -101,80 +88,71 @@ class Worker
     }
 
     /**
-     * 设置工作停止
-     */
-    public function setStop()
-    {
-        $this->status = self::STATUS_SET_STOP;
-    }
-
-    /**
-     * 获取工作状态
-     * @return int
-     */
-    public function getStatus()
-    {
-        return $this->status;
-    }
-
-
-    /**
      * 启用一个队列的监听任务
-     * @param \Closure $closure 每次while结束后调用一次回调
      */
-    public function listen(\Closure $closure = null)
+    public function listen()
     {
-        $this->status = self::STATUS_RUN;    // 设置为正在运行状态
-
-        $job = null;
         while (true) {
 
-            //弹出任务
-            $job = $this->queue->pop($this->queueName);
-
-            if($job instanceof Job) {
-
-                // 执行任务
-                $job->execute();
-
-                // 判断任务是否执行成功
-                if ($job->isExec()) {
-                    //任务成功，触发回调
-                    $job->success();
-                } else {
-                    // 执行失败,判断当前是否超出执行次数
-                    if ($this->attempt > 0 && $job->getAttempts() >= $this->attempt) {
-                        // 给定最大重试次数限制，且超过最大限制，则任务失败，触发回调
-                        $job->failed();
-                    } else {
-                        // 未给定最大重试次数限制，或者没有超过最大重试限制，则重新将任务放入队尾
-                        $job->release($this->queue, $this->queueName, $this->delay);
-                    }
-                }
-            } else {
-                // 如果队列没有任务，就等待指定间隔时间
-                $this->sleep($this->sleep);
-            }
-
-            // 执行回调
-            if (is_callable($closure)) {
-                $closure($this);
-            }
-
-            // 检测各个条件是否需要停止
-            switch (true) {
-                case $this->memoryExceeded():                   // 内存超出
-                    // todo 日志
-                case $this->status == self::STATUS_SET_STOP:    // 当前状态为准备退出状态
-                    $this->setBreak();
-                    break;
-            }
+            //消费一次队列任务
+            $this->runOnce();
 
             // 退出监听
-            if ($this->isBreak) {
+            if ($this->isStop()) {
                 break;
             }
         }
+    }
+
+    /**
+     * 消费一次队列任务
+     */
+    public function runOnce()
+    {
+        $job = null;
+
+        //弹出任务
+        $job = $this->queue->pop($this->queueName);
+
+        if($job instanceof Job) {
+
+            // 执行任务
+            $job->execute();
+
+            // 判断任务是否执行成功
+            if ($job->isExec()) {
+                //任务成功，触发回调
+                $job->success();
+            } else {
+                // 执行失败,判断当前是否超出执行次数
+                if ($this->attempt > 0 && $job->getAttempts() >= $this->attempt) {
+                    // 给定最大重试次数限制，且超过最大限制，则任务失败，触发回调
+                    $job->failed();
+                } else {
+                    // 未给定最大重试次数限制，或者没有超过最大重试限制，则重新将任务放入队尾
+                    $job->release($this->queue, $this->queueName, $this->delay);
+                }
+            }
+        } else {
+            // 如果队列没有任务，就等待指定间隔时间
+            $this->sleep($this->sleep);
+        }
+
+        // 内存超出
+        if ($this->memoryExceeded()) {
+            WorkLog::error('Memory out of range');
+            $this->setStop();
+        }
+    }
+
+
+    /**
+     * 是否需要退出
+     * @return bool
+     */
+    public function isStop()
+    {
+        return $this->isStop;
     }
 
 
@@ -198,10 +176,10 @@ class Worker
     /**
      * 设置退出监听
      */
-    protected function setBreak()
+    protected function setStop()
     {
         $this->close();
-        $this->isBreak = true;
+        $this->isStop = true;
     }
 
     /**

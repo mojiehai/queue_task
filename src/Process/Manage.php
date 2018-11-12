@@ -15,19 +15,36 @@ class Manage
     protected $config = [];
 
     /**
+     * 工作初始化
+     * @var \Closure
+     */
+    protected $closureInit = null;
+
+    /**
      * 工作回调
      * @var \Closure
      */
     protected $closure = null;
 
     /**
-     * 设置配置
      * @param array $config
-     * @return $this
+     * Manage constructor.
      */
-    public function setConfig(array $config)
+    public function __construct(array $config = [])
     {
         $this->config = $config;
+    }
+
+    /**
+     * 设置进程的工作初始化
+     * @param \Closure $closure
+     * @return $this
+     */
+    public function setWorkInit(\Closure $closure = null)
+    {
+        if (is_callable($closure)) {
+            $this->closureInit = $closure;
+        }
         return $this;
     }
 
@@ -86,10 +103,37 @@ class Manage
     {
         switch ($com2) {
             case '-d':      // 守护进程方式启动
+                //分离出子进程
+                $pid = pcntl_fork();
+                if($pid < 0){
+                    $this->showRunErrors(new ProcessException('start error!'));
+                    exit();
+                }else if($pid > 0){
+                    // 杀掉父进程
+                    echo 'start ok !' . PHP_EOL;
+                    exit;
+                }
+                //脱离当前终端(脱离死去的父进程的牵制)
+                $sid = posix_setsid();
+                if ($sid < 0) {
+                    exit;
+                }
+                //将当前工作目录更改为根目录
+                chdir('/');
+                //关闭文件描述符
+                fclose(STDIN);
+                fclose(STDOUT);
+                fclose(STDERR);
+                //重定向输入输出
+                global $STDOUT, $STDERR;
+                $STDOUT = fopen('/dev/null', 'a');
+                $STDERR = fopen('/dev/null', 'a');
+                $this->start();
                 break;
             case '':        // 直接启动
-                $master = Master::Create();
-                $master->setConfig($this->config)->setWork($this->closure)->run();
+                $master = new Master($this->config);
+                echo $master->pid . ' -- '. $master->title . ' -- starting !' . PHP_EOL;
+                $master->setWorkInit($this->closureInit)->setWork($this->closure)->run();
                 break;
             default:        // 命令错误
                 $this->showCommandErrors($com2);
@@ -104,9 +148,10 @@ class Manage
      */
     protected function stop()
     {
-        $masterPid = Master::getPidByFile();
-        if (Process::isAlive($masterPid)) {
-            if (posix_kill($masterPid, SIGUSR2)) {
+        $master = new Master($this->config, -1);
+        $master->pid = $master->getPidByFile();
+        if (Master::isMasterAlive($master)) {
+            if (posix_kill($master->pid, SIGUSR2)) {
                 echo 'stop'.PHP_EOL;
             } else {
                 throw new ProcessException('stop failure');
@@ -123,9 +168,10 @@ class Manage
      */
     protected function restart()
     {
-        $masterPid = Master::getPidByFile();
-        if (Process::isAlive($masterPid)) {
-            if (posix_kill($masterPid, SIGUSR1)) {
+        $master = new Master($this->config, -1);
+        $master->pid = $master->getPidByFile();
+        if (Master::isMasterAlive($master)) {
+            if (posix_kill($master->pid, SIGUSR1)) {
                 echo 'restart'.PHP_EOL;
             } else {
                 throw new ProcessException('restart failure');

@@ -2,7 +2,7 @@
 
 namespace QueueTask\Process;
 use QueueTask\Exception\ProcessException;
-use QueueTask\Helpers\Log;
+use QueueTask\Log\ProcessLog;
 
 /**
  * 主进程类
@@ -16,17 +16,17 @@ class Master extends Process
      * master进程存放pid文件的目录
      * @var string
      */
-    protected static $pidFileDir = '';
+    protected $pidFileDir = '';
     /**
      * master进程pid文件的完整目录
      * @var string
      */
-    protected static $pidFilePath = '';
+    protected $pidFilePath = '';
     /**
      * master进程pid文件的名称
      * @var string
      */
-    protected static $pidFileName = 'queue_task.master.pid';
+    protected $pidFileName = '';
 
     /**
      * 最大工作进程数
@@ -56,34 +56,37 @@ class Master extends Process
      * 允许配置的变量
      * @var array
      */
-    protected $configNameList = ['checkWorkerInterval', 'maxWorkerNum'];
+    protected $configNameList = ['pidFileDir', 'checkWorkerInterval', 'maxWorkerNum'];
 
     /**
-     * Master constructor.
-     * @param int $pid
-     * @throws ProcessException
+     * 加载配置
      */
-    protected function __construct($pid = 0)
+    protected function configure()
     {
-        parent::__construct($pid);
-        $this->savePidToFile();
+        // 初始化根目录(此值为默认值，支持通过配置修改)
+        $this->pidFileDir = dirname(__DIR__).DIRECTORY_SEPARATOR.'runtime'.DIRECTORY_SEPARATOR.'pid';
+        parent::configure();
+
+        // 初始化pid文件名
+        $this->pidFileName = $this->title;
+        // 初始化pid完整文件路径
+        $this->pidFilePath = $this->pidFileDir.DIRECTORY_SEPARATOR.$this->pidFileName;
     }
 
     /**
-     * 实例化进程类
-     * @param int $pid  进程pid
-     * @return Process
+     * 初始化进程数据
      * @throws ProcessException
      */
-    public static function Create($pid = 0)
+    protected function init()
     {
-        if (empty($pid)) {
-            // pid为空，则会自动获取当前pid，检查pidFile的master进程是否存活，存活的话就不允许创建
-            if (static::isAlive(static::getPidByFile())) {
-                throw new ProcessException('process is already exists!');
-            }
+        // 检查master是否已经启动
+        if (static::isMasterAlive($this)) {
+            throw new ProcessException('process is already exists!');
         }
-        return parent::Create($pid);
+        parent::init();
+        $this->savePidToFile();
+
+        return $this;
     }
 
     ############################## pid file ###############################
@@ -91,17 +94,20 @@ class Master extends Process
      * 初始化pid文件
      * @throws ProcessException
      */
-    protected static function initPidFile()
+    protected function initPidFile()
     {
-        if (empty(static::$pidFileDir)) {
-            static::$pidFileDir = sys_get_temp_dir().DIRECTORY_SEPARATOR;
+        if (empty($this->pidFileDir) || empty($this->pidFileName)) {
+            throw new ProcessException("pid file configure error");
         }
-        if (empty(static::$pidFilePath)) {
-            static::$pidFilePath = static::$pidFileDir.static::$pidFileName;
+        if (!is_dir($this->pidFileDir)) {
+            if (!mkdir($this->pidFileDir, 0644, true)) {
+                throw new ProcessException('create master pid directory failure');
+            }
+            chmod($this->pidFileDir, 0644);
         }
-        if (!file_exists(static::$pidFilePath)) {
-            if (!touch(static::$pidFilePath)) {
-                throw new ProcessException('create file failure');
+        if (!file_exists($this->pidFilePath)) {
+            if (!touch($this->pidFilePath)) {
+                throw new ProcessException('create master pid file failure');
             }
         }
     }
@@ -113,8 +119,8 @@ class Master extends Process
      */
     protected function savePidToFile()
     {
-        static::initPidFile();
-        $return = file_put_contents(static::$pidFilePath, $this->pid);
+        $this->initPidFile();
+        $return = file_put_contents($this->pidFilePath, $this->pid);
         if ($return) {
             return true;
         } else {
@@ -127,10 +133,21 @@ class Master extends Process
      * @return int pid
      * @throws ProcessException
      */
-    public static function getPidByFile()
+    public function getPidByFile()
     {
-        static::initPidFile();
-        return intval(file_get_contents(static::$pidFilePath));
+        $this->initPidFile();
+        return intval(file_get_contents($this->pidFilePath));
+    }
+
+    /**
+     * 判断master进程是否存活
+     * @param Master $master master进程对象
+     * @return bool
+     * @throws ProcessException
+     */
+    public static function isMasterAlive(Master $master)
+    {
+        return static::isAlive($master->getPidByFile());
     }
     ############################## pid file ###############################
 
@@ -201,14 +218,39 @@ class Master extends Process
                 if ($res = posix_kill($v, SIGTERM)) {
                     unset($this->workers[$k]);
                 } else {
-                    // log
-                    // kill child $v faild
+                    // kill worker $v failed
+                    ProcessLog::Record('error', $this, 'kill worker ('.$v.') failed');
                     $isStop = false;
                 }
             }
             return $isStop;
         } else {
             return posix_kill($workerPid, SIGTERM);
+        }
+    }
+
+    /**
+     * 强行停止子进程(给子进程发送停止信号SIGKILL)
+     * @param int $workerPid 子进程pid，为0则为所有子进程
+     * @return bool
+     */
+    protected function forceStopWorkers($workerPid = 0)
+    {
+        if ($workerPid == 0) {
+            $isStop = true;
+            foreach ($this->workers as $k => $v) {
+                if ($res = posix_kill($v, SIGKILL)) {
+                    unset($this->workers[$k]);
+                    ProcessLog::Record('warning', $this, 'force kill worker ('.$v.')');
+                } else {
+                    // kill worker $v failed
+                    ProcessLog::Record('error', $this, 'kill -9 worker ('.$v.') failed');
+                    $isStop = false;
+                }
+            }
+            return $isStop;
+        } else {
+            return posix_kill($workerPid, SIGKILL);
         }
     }
     ############################## 子进程操作 ###############################
@@ -250,10 +292,10 @@ class Master extends Process
                         $STDOUT = fopen('/dev/null', 'a');
                         $STDERR = fopen('/dev/null', 'a');
 
-                        $worker = Worker::Create();
-                        $worker->setConfig($this->config)->setWork($this->closure)->run();
+                        // 启动子进程任务
+                        (new Worker($this->config))->setWorkInit($this->closureInit)->setWork($this->closure)->run();
                     } catch (\Exception $e){
-                        Log::error($e->getTraceAsString());
+                        ProcessLog::Record('error', $this, $e->getTraceAsString());
                     } finally {
                         exit();
                     }
@@ -272,8 +314,26 @@ class Master extends Process
     {
         // 停止所有子进程
         $this->stopWorkers();
+        $isStop = false;
+        // 检测10次 共5s
+        for ($i = 1; $i <= 5; $i++) {
+            // 睡眠1s，等待子进程安全退出
+            sleep(1);
+            // 检测子进程状态
+            $this->checkWorkers();
+            // 如果子进程全部退出完成
+            if (empty($this->workers)) {
+                $isStop = true;
+                break;
+            }
+        }
+        if (!$isStop) {
+            // 强制退出还未退出的子进程
+            $this->forceStopWorkers();
+        }
         // 设置状态
         $this->status = self::STATUS_STOPPED;
+        // 停止主进程
         parent::stop();
     }
 
@@ -284,8 +344,23 @@ class Master extends Process
     {
         // 停止所有子进程
         $this->stopWorkers();
-        // 睡眠5s
-        sleep(5);
+        $isStop = false;
+        // 检测5次
+        for ($i = 1; $i <= 5; $i++) {
+            // 睡眠1s，等待子进程安全退出
+            sleep(1);
+            // 检测子进程状态
+            $this->checkWorkers();
+            // 如果子进程全部退出完成
+            if (empty($this->workers)) {
+                $isStop = true;
+                break;
+            }
+        }
+        if (!$isStop) {
+            // 强制退出还未退出的子进程
+            $this->forceStopWorkers();
+        }
         // 设置成运行状态
         $this->status = self::STATUS_RUN;
         // 触发检测子进程机制
@@ -302,8 +377,6 @@ class Master extends Process
      */
     protected function runHandler()
     {
-        echo $this->title . ":" .$this->pid."\n";
-
         posix_kill($this->pid, SIGALRM);
         while (true) {
             // 调用信号处理程序

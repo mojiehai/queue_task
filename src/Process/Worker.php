@@ -29,8 +29,6 @@ class Worker extends Process
      */
     protected $executeUSleep = 200000;  // 0.2s
 
-
-
     /**
      * 工作进程当前执行次数
      * @var int
@@ -50,26 +48,17 @@ class Worker extends Process
     protected $configNameList = ['executeTimes', 'executeUSleep', 'limitSeconds'];
 
     /**
-     * Worker constructor.
-     * @param int $pid
-     */
-    protected function __construct($pid = 0)
-    {
-        parent::__construct($pid);
-        $this->titleSuffix = ':'.$this->pid;
-    }
-
-    /**
-     * 配置初始化
+     * 加载配置
      */
     protected function configure()
     {
+        parent::configure();
+
         // 如果设置了最大执行时长，则初始化预计退出时间
         if ($this->limitSeconds > 0) {
             $this->preExitTime = time() + $this->limitSeconds;
         }
     }
-
 
     /**
      * 工作开始
@@ -77,9 +66,14 @@ class Worker extends Process
      */
     protected function runHandler()
     {
+        // 生成一个master对象，pid传-1只是不用再次获取当前pid
+        $master = new Master($this->config, -1);
+        $master->pid = $master->getPidByFile();
+
+        $work = $this->workInit();
         while (true) {
             // 执行任务
-            $this->execute();
+            $this->workExecute($work);
 
             $time = time();
 
@@ -104,10 +98,9 @@ class Worker extends Process
             if (
                 $time % 10 == 0 &&
                 (!$this->isExpectStop()) &&
-                (!static::isAlive(Master::getPidByFile()))
+                (!Master::isMasterAlive($master))
             ) {
-                // todo 测试结束打开这段
-                //$this->setStop();
+                $this->setStop();
             }
 
             // 检测是否退出进程
@@ -123,13 +116,28 @@ class Worker extends Process
     }
 
     /**
-     * 执行工作回调
+     * 执行工作初始化
+     * @return mixed
      */
-    protected function execute()
+    protected function workInit()
+    {
+        if (is_callable($this->closureInit)) {
+            $closure = $this->closureInit;
+            return $closure($this);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * 执行工作回调
+     * @param mixed $workInitReturn 工作初始化回调方法的返回值
+     */
+    protected function workExecute($workInitReturn = null)
     {
         if (is_callable($this->closure)) {
             $closure = $this->closure;
-            $closure($this);
+            $closure($this, $workInitReturn);
             $this->currentExecuteTimes++;
         } else {
             $this->setStop();

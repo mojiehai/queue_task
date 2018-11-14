@@ -7,6 +7,8 @@ use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
 use QueueTask\Connection\ConnectionFactory;
+use QueueTask\Exception\Exception;
+use QueueTask\Log\WorkLog;
 
 /**
  * 队列实体
@@ -41,11 +43,11 @@ class Queue implements QueueInterface
 
     /**
      * 不允许被克隆
-     * @throws \Exception
+     * @throws Exception
      */
     protected function __clone()
     {
-        throw new \Exception("This class cannot be cloned" , -101);
+        throw new Exception("This class cannot be cloned" , -101);
     }
 
     /**
@@ -60,7 +62,8 @@ class Queue implements QueueInterface
         if (!isset(static::$instances[$connectName]) || !(static::$instances[$connectName] instanceof Queue)) {
             try {
                 static::$instances[$connectName] = new static(ConnectionFactory::getInstance($connectName));
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
+                WorkLog::error($e->getExceptionAsString());
             }
         }
         return static::$instances[$connectName];

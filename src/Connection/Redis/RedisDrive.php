@@ -4,6 +4,7 @@ namespace QueueTask\Connection\Redis;
 
 use QueueTask\Exception\DBException;
 use QueueTask\Helpers\StringHelpers;
+use QueueTask\Exception\Exception;
 
 
 /**
@@ -215,9 +216,13 @@ class RedisDrive
         $this->close();
         self::$instance = null;
     }
+
+    /**
+     * @throws Exception
+     */
     protected function __clone()
     {
-        throw new \Exception("This class cannot be cloned" , -101);
+        throw new Exception("This class cannot be cloned" , -101);
     }
 
     /**
@@ -274,6 +279,7 @@ class RedisDrive
 
     /**
      * 关闭redis连接
+     * @throws Exception
      */
     public function close()
     {
@@ -379,14 +385,12 @@ class RedisDrive
     }
 
 
-
-
-
     /**
      * 使用驼峰命名的方法名，即可向redis发送指令
      * 例如：$this->SetEx($params);    =>   "SET EX $params"
      * @param $name
      * @param $params
+     * @return mixed
      * @throws DBException
      */
     public function __call($name, $params)

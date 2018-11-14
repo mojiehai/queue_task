@@ -3,6 +3,7 @@
 namespace QueueTask\Process;
 use QueueTask\Exception\ProcessException;
 use QueueTask\Log\ProcessLog;
+use QueueTask\Exception\Exception;
 
 /**
  * 主进程类
@@ -259,7 +260,7 @@ class Master extends Process
     ############################## 当前进程操作 ###############################
     /**
      * 根据当前子进程数，检查并fork出worker进程
-     * @throws \Exception
+     * @throws Exception
      */
     protected function fork()
     {
@@ -276,6 +277,7 @@ class Master extends Process
                     // 该分支为父进程
                     $this->addWorker($workerPid);
                 } else if ($workerPid == 0) {
+                    $worker = null;
                     try {
                         // 该分支为子进程
 
@@ -293,9 +295,11 @@ class Master extends Process
                         $STDERR = fopen('/dev/null', 'a');
 
                         // 启动子进程任务
-                        (new Worker($this->config))->setWorkInit($this->closureInit)->setWork($this->closure)->run();
-                    } catch (\Exception $e){
-                        ProcessLog::Record('error', $this, $e->getTraceAsString());
+                        $worker = new Worker($this->config);
+                        $worker->setWorkInit($this->closureInit)->setWork($this->closure)->run();
+                    } catch (Exception $e){
+                        $msg = $e->getExceptionAsString();
+                        ProcessLog::Record('error', $worker, $msg);
                     } finally {
                         exit();
                     }
@@ -373,7 +377,7 @@ class Master extends Process
     /**
      * 工作开始
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function runHandler()
     {

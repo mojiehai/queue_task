@@ -36,7 +36,7 @@ class TestHandler extends JobHandler
     public function test($job,$data)
     {
         // 1/3几率成功
-        if(rand(0,2) == 0) {
+        if(rand(0,1) == 0) {
             $res = true;
             \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : '.var_export($res, true), 'listen');
         } else {
@@ -46,5 +46,9 @@ class TestHandler extends JobHandler
         }
     }
 
+    public function writeTest($job,$data)
+    {
+        \QueueTask\Log\WorkLog::info('run handler -- func: writeTest -- params: '.json_encode($data). ';', 'listen');
+    }
 
 }

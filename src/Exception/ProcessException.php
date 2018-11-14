@@ -8,7 +8,7 @@ namespace QueueTask\Exception;
  * Class ProcessException
  * @package QueueTask\Exception
  */
-class ProcessException extends \Exception
+class ProcessException extends Exception
 {
 
 }

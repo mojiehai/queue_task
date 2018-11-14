@@ -2,6 +2,7 @@
 
 namespace QueueTask\Connection;
 use QueueTask\Job\Job;
+use QueueTask\Exception\Exception;
 
 /**
  * 连接类
@@ -31,11 +32,11 @@ abstract class Connection
 
     /**
      * 不允许被克隆
-     * @throws \Exception
+     * @throws Exception
      */
     protected function __clone()
     {
-        throw new \Exception("This class cannot be cloned" , -101);
+        throw new Exception("This class cannot be cloned" , -101);
     }
 
     /**

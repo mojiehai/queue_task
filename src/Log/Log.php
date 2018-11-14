@@ -16,27 +16,33 @@ abstract class Log
     protected static $LEVELS = [
         'debug' => [
             'name' => 'Debug',
-            'level' => 1
+            'level' => 1,
+            'fileNamePrefix' => '',
         ],
         'info' => [
             'name' => 'Info',
-            'level' => 2
+            'level' => 2,
+            'fileNamePrefix' => '',
         ],
         'notice' => [
             'name' => 'Notice',
-            'level' => 3
+            'level' => 3,
+            'fileNamePrefix' => '',
         ],
         'warning' => [
             'name' => 'Warning',
-            'level' => 4
+            'level' => 4,
+            'fileNamePrefix' => '',
         ],
         'error' => [
             'name' => 'Error',
-            'level' => 5
+            'level' => 5,
+            'fileNamePrefix' => 'error_',
         ],
         'fatal' => [
             'name' => 'Fatal',
-            'level' => 6
+            'level' => 6,
+            'fileNamePrefix' => '',
         ],
     ];
 
@@ -104,10 +110,10 @@ abstract class Log
     protected static function write($level, $content, $fileName = '')
     {
         if (empty($fileName)) {
-            $logFile = static::getLogFilePath(static::getDefaultLogFileName());
-        } else {
-            $logFile = static::getLogFilePath($fileName);
+            $fileName = static::getDefaultLogFileName();
         }
+        $fileName = static::$LEVELS[$level]['fileNamePrefix'].$fileName;
+        $logFile = static::getLogFilePath($fileName);
         $logPrefix = static::getRowLogPrefix($level);
         $log = $logPrefix . $content . PHP_EOL;
         return file_put_contents($logFile, $log, FILE_APPEND);

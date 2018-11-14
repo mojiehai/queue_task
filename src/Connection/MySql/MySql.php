@@ -2,9 +2,9 @@
 
 namespace QueueTask\Connection\MySql;
 
-use QueueTask\Config\Config;
 use QueueTask\Connection\Connection;
 use QueueTask\Exception\DBException;
+use QueueTask\Exception\Exception;
 use QueueTask\Job\Job;
 
 /**
@@ -27,6 +27,7 @@ class MySql extends Connection
      * 配置参数
      * MySql constructor.
      * @param array $config
+     * @throws DBException
      */
     protected function __construct(array $config = [])
     {
@@ -75,11 +76,12 @@ class MySql extends Connection
      * 弹出队头任务(先删除后返回该任务)
      * @param $queueName
      * @return Job
+     * @throws Exception
      */
     public function pop($queueName)
     {
-        $this->begin();
         try {
+            $this->begin();
             $date = date('Y-m-d H:i:s',time());
             $sql = 'SELECT * FROM `'.static::$TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantExecTime` <= "'.$date.'" ORDER BY `wantExecTime` ASC LIMIT 1 FOR UPDATE';
             $res = $this->executeSql($sql);
@@ -100,7 +102,7 @@ class MySql extends Connection
             $this->commit();
             return $job;
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->rollback();
             throw $e;
         }
@@ -110,7 +112,7 @@ class MySql extends Connection
      * 压入队列
      * @param Job $job
      * @param string $queueName 队列名称
-     * @return boolean
+     * @return bool
      */
     public function push(Job $job, $queueName)
     {
@@ -120,12 +122,23 @@ class MySql extends Connection
         $wantExecTime = $currTime;
         $jobStr = Job::Encode($job);
 
-        return $this->insert([
-            'queueName' => $queueName,
-            'createTime' => $createTime,
-            'job' => $jobStr,
-            'wantExecTime' => $wantExecTime,
-        ]);
+        try {
+            $this->begin();
+            $res = $this->insert([
+                'queueName' => $queueName,
+                'createTime' => $createTime,
+                'job' => $jobStr,
+                'wantExecTime' => $wantExecTime,
+            ]);
+            if (!$res) {
+                throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
+            }
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return false;
+        }
     }
 
     /**
@@ -133,7 +146,7 @@ class MySql extends Connection
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
      * @param string $queueName 队列名称
-     * @return boolean
+     * @return bool
      */
     public function laterOn($delay, Job $job, $queueName)
     {
@@ -143,16 +156,28 @@ class MySql extends Connection
         $wantExecTime = date('Y-m-d H:i:s',$timestamp + $delay);
         $jobStr = Job::Encode($job);
 
-        return $this->insert([
-            'queueName' => $queueName,
-            'createTime' => $createTime,
-            'job' => $jobStr,
-            'wantExecTime' => $wantExecTime,
-        ]);
+        try {
+            $this->begin();
+            $res = $this->insert([
+                'queueName' => $queueName,
+                'createTime' => $createTime,
+                'job' => $jobStr,
+                'wantExecTime' => $wantExecTime,
+            ]);
+            if (!$res) {
+                throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
+            }
+            $this->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->rollback();
+            return false;
+        }
     }
 
     /**
      * 开启事务
+     * @throws DBException
      */
     protected function begin()
     {
@@ -161,6 +186,7 @@ class MySql extends Connection
 
     /**
      * 回滚事务
+     * @throws DBException
      */
     protected function rollback()
     {
@@ -169,6 +195,7 @@ class MySql extends Connection
 
     /**
      * 提交事务
+     * @throws DBException
      */
     protected function commit()
     {
@@ -179,6 +206,7 @@ class MySql extends Connection
      * 往数据库添加任务记录
      * @param $data
      * @return bool
+     * @throws DBException
      */
     protected function insert($data)
     {
@@ -200,7 +228,8 @@ class MySql extends Connection
     /**
      * 删除数据库任务
      * @param $where
-     * @return bool|\mysqli_result
+     * @return bool
+     * @throws DBException
      */
     protected function delete($where)
     {
@@ -222,6 +251,7 @@ class MySql extends Connection
      * 执行sql
      * @param $sql
      * @return bool|\mysqli_result
+     * @throws DBException
      */
     protected function executeSql($sql)
     {

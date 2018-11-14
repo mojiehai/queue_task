@@ -4,6 +4,7 @@ namespace QueueTask\Process;
 
 
 use QueueTask\Exception\ProcessException;
+use QueueTask\Exception\Exception;
 
 class Manage
 {
@@ -86,7 +87,7 @@ class Manage
                     break;
             }
             exit();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->showRunErrors($e);
         }
     }
@@ -97,7 +98,7 @@ class Manage
      * start命令动作
      * @param string $com2 第二个命令
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     protected function start($com2 = '')
     {

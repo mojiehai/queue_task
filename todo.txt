@@ -1,4 +1,9 @@
 1、所有的\n替换成PHP_EOL
 2、self换成static
-3、增加exception的日志处理、完善exception
+3、增加error,fatal error,exception的日志处理、完善exception
 4、增加File存储介质
+5、优化config注入方式
+6、mysql死锁
+7、mysql链接监控
+8、多进程试试使用swoole
+9、试试把多进程管理单独构建成另一个项目

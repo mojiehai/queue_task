@@ -4,6 +4,11 @@ require "./bootstrap.php";
 
 use QueueTask\Worker\Worker;
 use QueueTask\Queue\Queue;
+use QueueTask\Load\Load;
+
+$config = include './config.php';
+
+Load::Queue($config['queue']);
 
 $config = [
     'queueName' => 'a', //队列名称

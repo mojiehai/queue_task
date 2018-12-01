@@ -6,6 +6,10 @@ use QueueTask\Queue\Queue;
 use QueueTask\Process\Manage;
 use QueueTask\Process\Process;
 use Tests\TestHandler;
+use QueueTask\Load\Load;
+
+$baseConfig = include './config.php';
+Load::Queue($baseConfig['queue']);
 
 $config = [
     'queueName' => 'test_process', //队列名称
@@ -17,8 +21,8 @@ $config = [
     'baseTitle' => 'push',  // 进程基础名称
 
     // master 进程配置
-    'checkWorkerInterval' => 300,    // 300秒检测一次进程
-    'maxWorkerNum' => 5,    //5个进程
+    'checkWorkerInterval' => 10,    // 10秒检测一次进程
+    'maxWorkerNum' => 20,    //20个进程
 
     // worker 进程配置
     'executeTimes' => 0,    // 任务的最大执行次数
@@ -41,9 +45,19 @@ if(php_sapi_name() == 'cli') {
                 function(Process $process, array $arr) use ($config) {
                     $queue = $arr[0];   // Queue
                     $handler = $arr[1]; // TestHandler
-                    $res = $queue->pushOn($handler,$config['function'],$config['params'],$config['queueName']);
-
-                    \QueueTask\Log\WorkLog::info('push : '.var_export($res, true), 'push');
+                    // 直接压入队列
+                    $res = $queue->pushOn($handler, $config['function'], $config['params'], $config['queueName']);
+                    \QueueTask\Log\WorkLog::info('pushOn : '.var_export($res, true), 'push');
+                    return ;
+                    if (rand(0,1) == 1) {
+                        // 直接压入队列
+                        $res = $queue->pushOn($handler, $config['function'], $config['params'], $config['queueName']);
+                        \QueueTask\Log\WorkLog::info('pushOn : '.var_export($res, true), 'push');
+                    } else {
+                        // 延迟压入队列
+                        $res = $queue->laterOn(10, $handler, $config['function'], $config['params'], $config['queueName']);
+                        \QueueTask\Log\WorkLog::info('laterOn : '.var_export($res, true), 'push');
+                    }
                 })
             ->run();
     } catch (QueueTask\Exception\Exception $e) {

@@ -6,12 +6,16 @@ use QueueTask\Worker\Worker;
 use QueueTask\Queue\Queue;
 use QueueTask\Process\Manage;
 use QueueTask\Process\Process;
+use QueueTask\Load\Load;
+
+$baseConfig = include './config.php';
+Load::Queue($baseConfig['queue']);
 
 $config = [
     'queueName' => 'test_process', //队列名称
     'attempt' => 2,     //队列任务失败尝试次数，0为不限制
     'memory' => 128,    //允许使用的最大内存  单位:M
-    'sleep' => 3,       //每次检测的时间间隔
+    'sleep' => 1,       //每次检测的时间间隔
     'delay' => 1,       //失败后延迟的秒数重新入队列
 
     // 进程基础配置
@@ -19,8 +23,8 @@ $config = [
     'baseTitle' => 'listen',  // 进程基础名称
 
     // master 进程配置
-    'checkWorkerInterval' => 300,    // 300秒检测一次进程
-    'maxWorkerNum' => 5,    //5个进程
+    'checkWorkerInterval' => 10,    // 10秒检测一次进程
+    'maxWorkerNum' => 20,    //20个进程
 
     // worker 进程配置
     'executeTimes' => 0,    // 任务的最大执行次数

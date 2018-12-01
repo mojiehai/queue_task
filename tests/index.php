@@ -4,6 +4,12 @@ require "./bootstrap.php";
 
 use Tests\TestHandler;
 use QueueTask\Queue\Queue;
+use QueueTask\Load\Load;
+
+$config = include './config.php';
+
+Load::Queue($config['queue']);
+
 
 $res = Queue::getInstance();
 

@@ -2,7 +2,7 @@
 
 namespace QueueTask\Queue;
 
-use QueueTask\Config\Config;
+use QueueTask\Config\QueueConfig;
 use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
@@ -57,7 +57,7 @@ class Queue implements QueueInterface
     public static function getInstance($connectName = '')
     {
         if (empty($connectName)) {
-            $connectName = Config::$currentConnect;
+            $connectName = QueueConfig::$currentConnect;
         }
         if (!isset(static::$instances[$connectName]) || !(static::$instances[$connectName] instanceof Queue)) {
             try {

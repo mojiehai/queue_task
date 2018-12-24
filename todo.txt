@@ -1,7 +1,5 @@
-1、使用mojiehai/process_manage
-2、增加error,fatal error,exception的日志处理、完善exception
-3、增加File存储介质
-4、优化config注入方式
-5、mysql死锁
-6、mysql链接监控
-7、多进程试试使用swoole
+1、增加File存储介质
+2、mysql死锁
+3、mysql链接监控
+4、多进程试试使用swoole
+5、多次关闭文件描述符(STDIN/STDOUT/STDERR)

@@ -7,7 +7,7 @@ use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
 use QueueTask\Connection\ConnectionFactory;
-use QueueTask\Exception\Exception;
+use ProcessManage\Exception\Exception;
 use QueueTask\Log\WorkLog;
 
 /**

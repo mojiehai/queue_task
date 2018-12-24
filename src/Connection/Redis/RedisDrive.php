@@ -4,7 +4,7 @@ namespace QueueTask\Connection\Redis;
 
 use QueueTask\Exception\DBException;
 use QueueTask\Helpers\StringHelpers;
-use QueueTask\Exception\Exception;
+use ProcessManage\Exception\Exception;
 
 
 /**

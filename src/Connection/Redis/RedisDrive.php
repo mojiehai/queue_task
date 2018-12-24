@@ -340,7 +340,7 @@ class RedisDrive
     protected function parseResponse($command)
     {
         if (($line = fgets(self::$socket)) === false) {     //在RESP中，协议的不同部分总是以“\ r \ n”（CRLF）终止。
-            throw new DBException("Failed to read from socket.\nRedis command was: " . $command);
+            throw new DBException("Failed to read from socket. Redis command was: " . $command);
         }
         $type = $line[0];
         $line = mb_substr($line, 1, -2, '8bit');        //从第一位截取，去掉后面的\r\n
@@ -352,7 +352,7 @@ class RedisDrive
                     return $line;
                 }
             case '-': // Error reply        对于错误，回复的第一个字节是“ - ”
-                throw new DBException("Redis error: " . $line . "\nRedis command was: " . $command);
+                throw new DBException("Redis error: " . $line .". Redis command was: " . $command);
             case ':': // Integer reply      对于整数，回复的第一个字节是“：”
                 // no cast to int as it is in the range of a signed 64 bit integer
                 return $line;
@@ -364,7 +364,7 @@ class RedisDrive
                 $data = '';
                 while ($length > 0) {
                     if (($block = fread(self::$socket, $length)) === false) {
-                        throw new DBException("Failed to read from socket.\nRedis command was: " . $command);
+                        throw new DBException("Failed to read from socket. Redis command was: " . $command);
                     }
                     $data .= $block;
                     $length -= mb_strlen($block, '8bit');
@@ -380,7 +380,7 @@ class RedisDrive
 
                 return $data;
             default:
-                throw new DBException('Received illegal data from redis: ' . $line . "\nRedis command was: " . $command);
+                throw new DBException('Received illegal data from redis: ' . $line . ". Redis command was: " . $command);
         }
     }
 

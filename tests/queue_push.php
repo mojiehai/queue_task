@@ -3,8 +3,6 @@
 require "./bootstrap.php";
 
 use QueueTask\Queue\Queue;
-use QueueTask\Process\Manage;
-use QueueTask\Process\Process;
 use Tests\TestHandler;
 use QueueTask\Load\Load;
 

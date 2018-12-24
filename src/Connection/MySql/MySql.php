@@ -6,8 +6,6 @@ use QueueTask\Connection\Connection;
 use QueueTask\Exception\DBException;
 use QueueTask\Exception\Exception;
 use QueueTask\Job\Job;
-use QueueTask\Log\WorkLog;
-use QueueTask\Process\Worker;
 
 /**
  * MySql 操作任务类

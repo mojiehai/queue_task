@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "mojiehai/process_manage",
-            "version": "1.0.1",
+            "version": "1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mojiehai/process_manage.git",
-                "reference": "d3cbe8519a675815591b03fb23b661c3a29877e0"
+                "reference": "426060ca65d6049e232b8a835aac01f1fc8a9c2f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mojiehai/process_manage/zipball/d3cbe8519a675815591b03fb23b661c3a29877e0",
-                "reference": "d3cbe8519a675815591b03fb23b661c3a29877e0",
+                "url": "https://api.github.com/repos/mojiehai/process_manage/zipball/426060ca65d6049e232b8a835aac01f1fc8a9c2f",
+                "reference": "426060ca65d6049e232b8a835aac01f1fc8a9c2f",
                 "shasum": ""
             },
             "require": {
@@ -48,7 +48,7 @@
                 "manage",
                 "process"
             ],
-            "time": "2018-12-24T05:56:36+00:00"
+            "time": "2018-12-25T08:14:31+00:00"
         }
     ],
     "packages-dev": [],

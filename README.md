@@ -1,4 +1,4 @@
-# QueueTask
+# queue_task
 一个轻量级可拓展的队列任务、暂时支持mysql、redis等存储方式
 
 # 自动加载

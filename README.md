@@ -65,7 +65,7 @@ Load::Queue($config);
 
 
 ### 压入任务
-1. 首先定义处理类，例如：TestHandler继承JobHandler，并定义test方法
+1. 首先定义处理类，例如：TestHandler继承JobHandler，并定义任务test方法
 2. test方法接收两个参数，第一个为Job对象，第二个为自定义参数
 ```php
 class TestHandler extends JobHandler

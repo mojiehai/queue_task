@@ -65,12 +65,53 @@ Load::Queue($config);
 
 
 ### 压入任务
+1. 首先定义处理类，例如：TestHandler继承JobHandler，并定义test方法
+2. test方法接收两个参数，第一个为Job对象，第二个为自定义参数
 ```php
+class TestHandler extends JobHandler
+{
+
+    /**
+     * 失败回调方法
+     * @param Job $job      任务
+     * @param string $func     执行的方法
+     * @param array $data     参数
+     * @return mixed
+     */
+    public function failed($job, $func, $data)
+    {
+        \QueueTask\Log\WorkLog::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data));
+    }
+
+    /**
+     * 任务成功回调
+     * @param Job $job      任务
+     * @param string $func     执行的方法
+     * @param array $data     参数
+     * @return mixed
+     */
+    public function success($job, $func, $data)
+    {
+        \QueueTask\Log\WorkLog::info('success run handler -- func: '.$func.' -- params: '.json_encode($data));
+    }
+
+
+    public function test($job,$data)
+    {
+        \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : '.var_export($res, true));
+    }
+
+}
+```
+3. 压入
+```php
+// 获取队列对象
 $queue = Queue::getInstance();
 
-// 直接压入队列
+// 直接压入队列，参数：handler对象，方法，自定义参数，队列名称
 $r = $queue->pushOn(new TestHandler(),'test',['test'=>'test'],'queue_name_1');
-// 延迟5s压入队列
+
+// 延迟5s压入队列，参数：延迟秒数，handler对象，方法，自定义参数，队列名称
 $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1');
  
 ```
@@ -94,7 +135,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     
     <br />
     
-2. 以守护进程方式启动监听任务，命令格式： `<start|stop|restart|status> -[d]`
+2. 以守护进程方式启动监听任务，命令格式： `<start|stop|restart|status> -[d]` 对应 (`开启`/`停止`/`平滑重启`/`状态`)(`-d`为后台运行)
     ```php
     $queueConfig = [
         'queueName' => 'queue_name_1', //队列名称
@@ -150,11 +191,6 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
                          'DB_PASSWORD'   => null,            //密码        无密码时，设置为null
                      ],
                  ],
-         
-                 'File' => [
-                     'class' => '\\QueueTask\\Connection\\File\\File',
-                     'config' => [],
-                 ],
              ],
         
             ######################### 当前存储方式 ###########################
@@ -162,9 +198,8 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
      
             ######################### 日志配置 ###########################
             'Log' = [
-                'LogBaseRoot' => /queue_task/runtime/log/', // 日志文件根目录(当前组件的runtime/log下)
+                'LogBaseRoot' => __DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'runtime'.DIRECTORY_SEPARATOR.'log', 
         
-                // 日志级别对应的文件名前缀
                 'Debug_FileNamePrefix' => '',
                 'Info_FileNamePrefix' => '',
                 'Notice_FileNamePrefix' => '',
@@ -172,13 +207,9 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
                 'Error_FileNamePrefix' => 'error_',
                 'Fatal_FileNamePrefix' => 'fatal_',
         
-                // 普通日志文件默认文件名
                 'LogFileName' => 'work',
-                // 普通日志文件分隔规则
                 'LogDeLimiterRule' => 'Y-m-d',
-                // 进程日志文件默认文件名
                 'ProcessLogFileName' => 'queue_task_run',
-                // 进程日志文件分隔规则
                 'ProcessLogDeLimiterRule' => 'Y-m-d',
             ],
      
@@ -190,9 +221,37 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ],
         ]
         ```
-        - `connectRegister` 存储配置列表
-        - `currentConnect` 当前存储方式
-        - `Log` 日志配置模块
-        - `Process` 守护进程配置模块
+        > 注：上述所列都是各项配置的默认值
+        - `connectRegister`：存储配置列表，自定义存储结构可在这里添加
+            - `class`：存储类名，需要继承`QueueTask\Connection\Connection`
+            - `config`：`class`指定类的构造参数
+        - `currentConnect`：当前存储方式(可选值为`connectRegister`中的键，默认`Redis`)
+        - `Log`：日志配置模块
+            - `LogBaseRoot`：日志文件根目录，默认为当前组件的runtime/log下
+            - `xxx_FileNamePrefix`：日志级别对应的文件名前缀
+            - `LogFileName`：普通日志文件默认文件名
+            - `LogDeLimiterRule`：普通日志文件分隔规则，默认按天
+            - `ProcessLogFileName`：进程日志文件默认文件名
+            - `ProcessLogDeLimiterRule`：进程日志文件分隔规则，默认按天
+        - `Process`：守护进程配置模块
+            - `PidRoot`：进程pid文件的根目录
+            - `TitlePrefix`：进程名称前缀
+            - `StatusFileRoot`：进程状态文件的根目录
 			
-	2. 局部配置
+	2. 局部配置，当前进程所需要的配置
+	    1. 队列配置
+	        - `queueName`：队列名称，默认：`default`
+	        - `attempt`：队列任务最大执行的次数(失败则重试，直到最大次数)，0为不限制（无限重试），默认：`10`
+	        - `memory`：允许使用的最大内存，单位:M，默认：`128`
+	        - `sleep`：每次检测的时间间隔(如果当前队列没有任务，则会等待该时长后再次尝试出队)，默认：`3`
+	        - `delay`：失败后延迟的秒数重新加入队列(任务失败后，会压入一个延迟任务，如果该值设置成0，则会压入一个及时队列)，默认：`0`
+	        
+	    2. 进程配置  
+	        master进程
+	        - `checkWorkerInterval`：n秒检测一次工作进程数量，默认：`600`
+	        - `maxWorkerNum`：工作进程个数，默认：`2`
+	        
+	        worker进程
+	        - `executeTimes`：任务的最大执行次数(到次数后退出进程，master进程重新启动)(0为不限制)，默认：`0`
+	        - `limitSeconds`：工作进程最大执行时长(秒)(到时间后退出进程，master进程重新启动)(0为不限制)，默认：`0`
+

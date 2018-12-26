@@ -162,7 +162,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
      
             ######################### 日志配置 ###########################
             'Log' = [
-                'LogBaseRoot' => /queue_task/runtime/log/', // 日志文件根目录(当前项目的runtime/log下)
+                'LogBaseRoot' => /queue_task/runtime/log/', // 日志文件根目录(当前组件的runtime/log下)
         
                 // 日志级别对应的文件名前缀
                 'Debug_FileNamePrefix' => '',

@@ -94,7 +94,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     
     <br />
     
-2. 以守护进程方式启动监听任务，命令模板： `<start|stop|restart|status> -[d]`
+2. 以守护进程方式启动监听任务，命令格式： `<start|stop|restart|status> -[d]`
     ```php
     $queueConfig = [
         'queueName' => 'queue_name_1', //队列名称

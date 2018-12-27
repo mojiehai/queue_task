@@ -246,7 +246,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
 	        - `sleep`：每次检测的时间间隔(如果当前队列没有任务，则会等待该时长后再次尝试出队)，默认：`3`
 	        - `delay`：失败后延迟的秒数重新加入队列(任务失败后，会压入一个延迟任务，如果该值设置成0，则会压入一个及时队列)，默认：`0`
 	        
-	    2. 进程配置  
+	    2. 守护进程配置  
 	        master进程
 	        - `checkWorkerInterval`：n秒检测一次工作进程数量，默认：`600`
 	        - `maxWorkerNum`：工作进程个数，默认：`2`

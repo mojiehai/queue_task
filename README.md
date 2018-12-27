@@ -221,7 +221,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ],
         ]
         ```
-        > 注：上述所列都是各项配置的默认值
+        > 注：上述所列都是各项配置的默认值，会局部覆盖原配置数组，而不是直接替换
         - `connectRegister`：存储配置列表，自定义存储结构可在这里添加
             - `class`：存储类名，需要继承`QueueTask\Connection\Connection`
             - `config`：`class`指定类的构造参数

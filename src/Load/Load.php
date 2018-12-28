@@ -2,6 +2,8 @@
 
 namespace QueueTask\Load;
 
+use ProcessManage\Config\LogConfig;
+use ProcessManage\Config\ProcessConfig;
 use QueueTask\Config\QueueConfig;
 
 /**
@@ -13,12 +15,14 @@ class Load
 {
 
     /**
-     * 加载queue模块
+     * 加载queue模块依赖的配置
      * @param array $config
      */
     public static function Queue(array $config)
     {
-        QueueConfig::loadConfig($config);
+        QueueConfig::LoadConfig($config);
+        LogConfig::LoadConfig(QueueConfig::$Log);
+        ProcessConfig::LoadConfig(QueueConfig::$Process);
     }
 
 }

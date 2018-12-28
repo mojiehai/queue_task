@@ -4,9 +4,12 @@ namespace QueueTask\Connection;
 
 
 use QueueTask\Config\QueueConfig;
-use QueueTask\Exception\Exception;
-use QueueTask\Log\WorkLog;
+use ProcessManage\Exception\Exception;
 
+/**
+ * Class ConnectionFactory
+ * @package QueueTask\Connection
+ */
 class ConnectionFactory
 {
 

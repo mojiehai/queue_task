@@ -2,7 +2,7 @@
 
 namespace QueueTask\Connection;
 use QueueTask\Job\Job;
-use QueueTask\Exception\Exception;
+use ProcessManage\Exception\Exception;
 
 /**
  * 连接类

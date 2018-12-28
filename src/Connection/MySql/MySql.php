@@ -6,8 +6,6 @@ use QueueTask\Connection\Connection;
 use QueueTask\Exception\DBException;
 use QueueTask\Exception\Exception;
 use QueueTask\Job\Job;
-use QueueTask\Log\WorkLog;
-use QueueTask\Process\Worker;
 
 /**
  * MySql 操作任务类
@@ -95,9 +93,9 @@ class MySql extends Connection
             // 先插入一个头节点，保持头结点有数据，防止用到gap锁
             $result = $this->insert([
                 'queueName' => $queueName,
-                'createTime' => '',
+                'createTime' => '0000-00-00 00:00:00',
                 'job' => '',
-                'wantExecTime' => '',
+                'wantExecTime' => '0000-00-00 00:00:00',
                 'is_head' => 1,         // 头结点
             ]);
             if ($result) {

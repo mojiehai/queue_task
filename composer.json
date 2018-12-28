@@ -1,5 +1,5 @@
 {
-    "name"  : "mojiehai/queuetask",
+    "name"  : "mojiehai/queue_task",
     "description": "queue task",
     "license": "MIT",
     "keywords": ["queue task"],
@@ -10,10 +10,9 @@
         }
     ],
     "require": {
-        "php": ">=5.6.0",
+        "mojiehai/process_manage" : "~1.0.0",
+        "php": ">=7.0",
         "ext-mysqli": "*",
-        "ext-pcntl": "*",
-        "ext-posix": "*",
         "ext-json": "*"
     },
     "autoload": {

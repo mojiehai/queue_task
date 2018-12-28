@@ -4,6 +4,7 @@ namespace QueueTask\Handler;
 
 use QueueTask\Exception\TaskException;
 use QueueTask\Job\Job;
+use Throwable;
 
 
 /**
@@ -58,13 +59,14 @@ abstract class JobHandler
 
     /**
      * 设置本次执行handler为失败
-     * @param string $msg
+     * @param string $message
      * @param int $code
+     * @param Throwable $previous
      * @throws TaskException
      */
-    public function throwOnceFailure($msg = "" , $code = 0)
+    public function throwOnceFailure($message = "", $code = 0, Throwable $previous = null)
     {
-        throw new TaskException($msg, $code);
+        throw new TaskException($message, $code, $previous);
     }
 
 } 

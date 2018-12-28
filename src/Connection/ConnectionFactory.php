@@ -3,9 +3,13 @@
 namespace QueueTask\Connection;
 
 
-use QueueTask\Config\Config;
-use QueueTask\Exception\Exception;
+use QueueTask\Config\QueueConfig;
+use ProcessManage\Exception\Exception;
 
+/**
+ * Class ConnectionFactory
+ * @package QueueTask\Connection
+ */
 class ConnectionFactory
 {
 
@@ -17,7 +21,7 @@ class ConnectionFactory
      */
     public static function getInstance($connectName)
     {
-        $connect = Config::getConnection($connectName);
+        $connect = QueueConfig::getConnection($connectName);
         if (empty($connect) || !isset($connect['class']) || empty($connect['class'])) {
             throw new Exception('There is no link available type', 102);
         } else {

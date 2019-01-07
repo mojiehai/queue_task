@@ -16,13 +16,13 @@ class DaemonQueueTemplate extends Template
      */
     public $mapping = [
         'action' => [
-            'start' => '\QueueTask\Daemon\Command\Start',
-            'stop' => '\QueueTask\Daemon\Command\Stop',
-            'restart' => '\QueueTask\Daemon\Command\ReStart',
-            'status' => '\QueueTask\Daemon\Command\Status',
+            'start' => 'Start',
+            'stop' => 'Stop',
+            'restart' => 'ReStart',
+            'status' => 'Status',
         ],
         'options' => [
-            'd' => '\QueueTask\Daemon\Command\D',
+            'd' => 'D',
         ],
     ];
 

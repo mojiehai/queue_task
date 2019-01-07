@@ -27,7 +27,7 @@ class QueueConfig extends Config
                 'DB_PASSWORD'   => 'root',          //密码
                 'DB_CHARSET'    => 'utf8',          //数据库字符集
                 'DB_DATABASE'   => 'queue_task',    //数据库名称
-                'DB_TABLE_ASYNC'=> 'queue_task_delay',//延迟队列数据库名称
+                'DB_TABLE_DELAY'=> 'job_queue_delay',//延迟队列表名称
                 'DB_TABLE'      => 'job_queue',     //表名称
             ],
         ],

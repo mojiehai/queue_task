@@ -7,6 +7,7 @@ use QueueTask\Exception\DBException;
 use ProcessManage\Exception\Exception;
 use QueueTask\Helpers\Lock\FileLock;
 use QueueTask\Job\Job;
+use QueueTask\Log\WorkLog;
 
 /**
  * MySql 操作任务类
@@ -48,12 +49,11 @@ class MySql extends Connection
         if (empty(static::$TABLE_NAME)) {
             throw new DBException("MySql Init Error: config 'DB_TABLE' is empty");
         }
-        if (isset($config['DB_TABLE_ASYNC']) && !empty($config['DB_TABLE_ASYNC'])) {
-            static::$DELAY_TABLE_NAME = $config['DB_TABLE_ASYNC'];
+        if (isset($config['DB_TABLE_DELAY']) && !empty($config['DB_TABLE_DELAY'])) {
+            static::$DELAY_TABLE_NAME = $config['DB_TABLE_DELAY'];
         }
         if (empty(static::$DELAY_TABLE_NAME)) {
-            die("DB_TABLE_ASYNC is empty");
-            throw new DBException("MySql Init Error: config 'DB_TABLE_ASYNC' is empty");
+            throw new DBException("MySql Init Error: config 'DB_TABLE_DELAY' is empty");
         }
     }
 
@@ -98,54 +98,38 @@ class MySql extends Connection
     public function pop($queueName)
     {
         try {
-            $lockObj = new FileLock;
-            $lockObj->lock();
-
-            $this->begin();
-
-            $date = date('Y-m-d H:i:s');
-            $delaySql = 'SELECT `id`,`job`,`queueName` FROM `'.static::$DELAY_TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantExecTime` <= "'.$date.'" ORDER BY `wantExecTime`,`id` FOR UPDATE';
-            $delayRes = $this->executeSql($delaySql);
-            if (!($delayRes instanceof \mysqli_result)) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
-            }
-            $delayData = mysqli_fetch_all($delayRes);
-            if ($delayData) {
-                $insertData = [];
-                $ids        = [];
-                foreach ($delayData as $k => $delay) {
-                    $ids[]        = $delay[0];
-                    $insertData[] = ['job' => $delay[1], 'queueName' => $delay[2]];
-                }
-                if (!($this->delete(['id' => ['in', $ids]], static::$DELAY_TABLE_NAME))) {
-                    throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
-                }
-                if (!$this->insertAll($insertData)) {
-                    throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
-                }
-            }
-
-            $sql = 'SELECT `id`,`job` FROM `'.static::$TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" FOR UPDATE';
-            $res = $this->executeSql($sql);
-            if (!($res instanceof \mysqli_result)) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
-            }
-
             $job = null;
 
-            $result = mysqli_fetch_assoc($res);
+            $lockObj = new FileLock;
 
-            if ($result) {
-                // 任务节点，提取该任务，并删除该任务
-                if(!($this->delete(['id' => $result['id']]))) {
-                    throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+            // 加入文件锁
+            if ($lockObj->lock()) {
+
+                $this->begin();
+
+                //从延迟集合中合并到主执行队列
+                $this->migrateAllExpiredJobs($queueName);
+
+                $sql = 'SELECT `id`,`job` FROM `' . static::$TABLE_NAME . '` WHERE `queueName` = "' . $queueName . '" ORDER BY `id` LIMIT 1 FOR UPDATE';
+                $res = $this->executeSql($sql);
+                if (!($res instanceof \mysqli_result)) {
+                    throw new DBException("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
                 }
-                $job = Job::Decode($result['job']);
+
+                $result = mysqli_fetch_assoc($res);
+
+                if ($result) {
+                    // 任务节点，提取该任务，并删除该任务
+                    if (!($this->delete(['id' => $result['id']], static::$TABLE_NAME))) {
+                        throw new DBException("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                    }
+                    $job = Job::Decode($result['job']);
+                }
+
+                $this->commit();
+
+                $lockObj->unlock();
             }
-
-            $this->commit();
-
-            $lockObj->unlock();
 
             return $job;
 
@@ -171,7 +155,7 @@ class MySql extends Connection
             $res = $this->insert([
                 'queueName' => $queueName,
                 'job' => $jobStr,
-            ]);
+            ], static::$TABLE_NAME);
             if (!$res) {
                 throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
             }
@@ -179,6 +163,7 @@ class MySql extends Connection
             return true;
         } catch (Exception $e) {
             $this->rollback();
+            WorkLog::error('push Error: '. $e->getMessage());
             return false;
         }
     }
@@ -203,7 +188,7 @@ class MySql extends Connection
                 'queueName' => $queueName,
                 'job' => $jobStr,
                 'wantExecTime' => $wantExecTime,
-            ], true);
+            ], static::$DELAY_TABLE_NAME);
             if (!$res) {
                 throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
             }
@@ -211,9 +196,45 @@ class MySql extends Connection
             return true;
         } catch (Exception $e) {
             $this->rollback();
+            WorkLog::error('laterOn Error: '. $e->getMessage());
             return false;
         }
     }
+
+
+    /**
+     * 合并等待执行的任务
+     * @param  string $queueName
+     * @return void
+     * @throws DBException
+     */
+    protected function migrateAllExpiredJobs($queueName)
+    {
+        $date = date('Y-m-d H:i:s');
+        $delaySql = 'SELECT `id`,`job`,`queueName` FROM `'.static::$DELAY_TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantExecTime` <= "'.$date.'" ORDER BY `wantExecTime`,`id` FOR UPDATE';
+        $delayRes = $this->executeSql($delaySql);
+        if (!($delayRes instanceof \mysqli_result)) {
+            throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+        }
+        $delayData = mysqli_fetch_all($delayRes, MYSQLI_ASSOC);
+
+        if ($delayData) {
+            $insertData = [];
+            $ids        = [];
+            foreach ($delayData as $k => $delay) {
+                $ids[]        = $delay['id'];
+                $insertData[] = ['job' => $delay['job'], 'queueName' => $delay['queueName']];
+            }
+            if (!($this->delete(['id' => ['in', $ids]], static::$DELAY_TABLE_NAME))) {
+                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+            }
+            if (!$this->insertAll($insertData, static::$TABLE_NAME)) {
+                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+            }
+        }
+
+    }
+
 
     /**
      * 开启事务
@@ -244,24 +265,25 @@ class MySql extends Connection
 
     /**
      * 往数据库添加任务记录
-     * @param $data
-     * @param $delay
+     * @param array $data 数据数组
+     * @param string $table 表名
      * @return bool
      * @throws DBException
      */
-    protected function insert($data,$delay = false)
+    protected function insert(array $data, $table = '')
     {
         if (empty($data)) {
             return false;
         } else {
+            $tableName = !empty($table) ? $table: static::$TABLE_NAME;
+
             $keys = [];
             $values = [];
             foreach ($data as $k => $v) {
                 $keys[] = '`'.$k.'`';
                 $values[] = '"'.$v.'"';
             }
-            $table = $delay? static::$DELAY_TABLE_NAME: static::$TABLE_NAME;
-            $sql = 'INSERT INTO `'.$table.'` ('.implode(',', $keys).') VALUES ('.implode(',', $values).');';
+            $sql = 'INSERT INTO `'.$tableName.'` ('.implode(',', $keys).') VALUES ('.implode(',', $values).');';
 
             return $this->executeSql($sql);
         }
@@ -269,15 +291,16 @@ class MySql extends Connection
 
     /**
      * 往数据库添加多条任务记录
-     *
-     * @param $dataSet
+     * @param array $dataSet 多条数据的数组
+     * @param string $table 表名
      * @return bool
      * @throws DBException
      */
-    public function insertAll($dataSet)
+    public function insertAll(array $dataSet, $table = '')
     {
-        $fields = array_map(function($v)
-        {
+        $tableName = !empty($table) ? $table: static::$TABLE_NAME;
+
+        $fields = array_map(function($v) {
             return "`{$v}`";
         }, array_keys($dataSet[0]));
 
@@ -286,7 +309,7 @@ class MySql extends Connection
             $values[] = '("'.implode('","', $data).'")';
         }
 
-        $sql = 'INSERT INTO '.static::$TABLE_NAME.' ('.implode(',', $fields).') VALUES '.implode(',', $values);
+        $sql = 'INSERT INTO '.$tableName.' ('.implode(',', $fields).') VALUES '.implode(',', $values);
 
         return $this->executeSql($sql);
     }
@@ -294,29 +317,23 @@ class MySql extends Connection
 
     /**
      * 删除数据库任务
-     * @param $where
-     * @param $table
+     * @param array $where
+     * @param string $table 表名
      * @return bool
      * @throws DBException
      */
-    protected function delete($where,$table='')
+    protected function delete(array $where, $table = '')
     {
         if (empty($where)) {
             return false;
         } else {
-            $tableName = $table? $table: static::$TABLE_NAME;
+            $tableName = !empty($table) ? $table: static::$TABLE_NAME;
 
             $tempWhere = [];
             foreach ($where as $k => $v) {
                 if (is_array($v)) {
                     if ('in' == strtolower($v[0])) {
                         $tempWhere[] = '`'.$k.'` IN ( "'.implode('","', $v[1]).'" )';
-                    } else {
-                        $action = [];
-                        foreach ($v as $vv) {
-                            $action[] = $vv;
-                        }
-                        $tempWhere[] = '`'.$k.'` '.implode(' ', $action);
                     }
                 } else {
                     $tempWhere[] = '`'.$k.'` = "'.$v.'"';

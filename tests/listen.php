@@ -11,7 +11,7 @@ $config = include './config.php';
 Load::Queue($config);
 
 $config = [
-    'queueName' => 'queue_name_1', //队列名称
+    'queueName' => 'testQueue', //队列名称
     'attempt' => 3,     //队列任务失败尝试次数，0为不限制
     'memory' => 128,    //允许使用的最大内存  单位:M
     'sleep' => 1,       //每次检测的时间间隔

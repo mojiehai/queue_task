@@ -157,13 +157,14 @@ class Daemon
      */
     final public function getWork()
     {
+        $queueName = $this->queueConfig['queueName'];
         // 执行的工作内容
-        return function(ProcessWorker $process, Queue $queue) {
+        return function(ProcessWorker $process, Queue $queue) use ($queueName) {
             if (rand(0, 1) == 0) {
-                $r = $queue->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue');
+                $r = $queue->pushOn(new TestHandler(),'test',['test'=>'test'],$queueName);
                 $msg = 'push';
             } else {
-                $r = $queue->laterOn(5, new TestHandler(),'test',['test'=>'test'],'testQueue');
+                $r = $queue->laterOn(5, new TestHandler(),'test',['test'=>'test'],$queueName);
                 $msg = 'laterOn';
             }
             if ($r) {

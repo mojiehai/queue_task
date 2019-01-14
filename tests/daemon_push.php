@@ -3,6 +3,7 @@
 require __DIR__."/bootstrap.php";
 
 use QueueTask\Load\Load;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 $config = include './config.php';
 
@@ -19,11 +20,17 @@ $processConfig = [
 
     // worker 进程配置
     'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
-    'limitSeconds' => 0,    // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制)
+    'limitSeconds' => 86400,    // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制)
 
     'executeUSleep' => 3000000,   // 3秒执行一次
 ];
 
 
 // 监听命令
-(Daemon::getInstance($queueConfig))->setProcessConfig($processConfig)->listenCommand();
+try{
+    SingleWorkDaemon::getInstance(
+        //(new PushWork($queueConfig))->setProcessConfig($processConfig)
+        (new PushDelayWork($queueConfig))->setProcessConfig($processConfig)
+    )->listenCommand();
+} catch (\ProcessManage\Exception\Exception $e) {
+}

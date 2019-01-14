@@ -44,6 +44,7 @@ class Work
         // worker 进程配置
         'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
         'limitSeconds' => 86400, // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制) (默认1天重启一次)
+        'executeUSleep' => 0,   // 每次工作任务中间睡眠时长(微秒)，0微秒执行一次
     ];
 
     /**
@@ -60,7 +61,7 @@ class Work
      * @param $variable
      * @param array $config
      */
-    private function setConfig($variable, array $config = [])
+    protected function setConfig($variable, array $config = [])
     {
         foreach ($config as $k => $v) {
             $this->$variable[$k] = $v;
@@ -90,8 +91,6 @@ class Work
         ##################### 不允许修改的值 #####################
         // 队列基础名称修改成队列名
         $this->processConfig['baseTitle'] = $this->queueName;
-        // 每次执行任务睡眠时间(微秒)设置成0，因为work中有睡眠
-        $this->processConfig['executeUSleep'] = 0;
         // 进程前缀
         $this->processConfig['titlePrefix'] = 'queue_task';
         ##################### 不允许修改的值 #####################

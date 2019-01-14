@@ -188,7 +188,9 @@ class Worker
      */
     protected function sleep($seconds)
     {
-        sleep($seconds);
+        if ($seconds > 0) {
+            sleep($seconds);
+        }
     }
 
 } 

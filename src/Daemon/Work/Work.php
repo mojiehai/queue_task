@@ -1,26 +1,23 @@
 <?php
 
-namespace QueueTask\Daemon;
+namespace QueueTask\Daemon\Work;
 
-use ProcessManage\Command\Command;
-use ProcessManage\Exception\Exception;
 use ProcessManage\Process\Worker as ProcessWorker;
-use QueueTask\Daemon\Command\DaemonQueueTemplate;
 use QueueTask\Worker\Worker;
 use QueueTask\Queue\Queue;
 
 /**
- * 守护进程
- * Class Daemon
- * @package QueueTask\Daemon
+ * 工作描述类
+ * Interface Work
+ * @package QueueTask\Daemon\Work
  */
-class Daemon
+class Work
 {
-
     /**
-     * @var Daemon
+     * 队列名称
+     * @var string
      */
-    protected static $instance = null;
+    public $queueName = '';
 
     /**
      * 队列配置信息
@@ -42,53 +39,32 @@ class Daemon
     protected $processConfig = [
         // master 进程配置
         'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
-        'maxWorkerNum' => 2,            //2个进程
+        'maxWorkerNum' => 1,            //1个进程
 
         // worker 进程配置
         'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
-        'limitSeconds' => 0,    // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制)
+        'limitSeconds' => 86400, // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制) (默认1天重启一次)
     ];
 
     /**
-     * Daemon constructor.
+     * Work constructor.
+     * @param array $queueConfig 队列配置信息
+     */
+    public function __construct(array $queueConfig)
+    {
+        $this->setQueueConfig($queueConfig);
+    }
+
+    /**
+     * 设置配置
+     * @param $variable
      * @param array $config
      */
-    protected function __construct(array $config = [])
+    private function setConfig($variable, array $config = [])
     {
-        $this->setQueueConfig($config);
-    }
-
-
-    /**
-     * clone
-     * @throws Exception
-     */
-    public function __clone()
-    {
-        throw new Exception("This class cannot be cloned" , -101);
-    }
-
-    /**
-     * 单例
-     * @param array $queueConfig 队列配置信息
-     * @return Daemon
-     */
-    public static function getInstance(array $queueConfig = [])
-    {
-        if (!(static::$instance instanceof static)) {
-            static::$instance = new Daemon($queueConfig);
-        } else {
-            static::$instance->setQueueConfig($queueConfig);
+        foreach ($config as $k => $v) {
+            $this->$variable[$k] = $v;
         }
-        return static::$instance;
-    }
-
-    /**
-     * 监听命令
-     */
-    public function listenCommand()
-    {
-        (new Command(new DaemonQueueTemplate()))->run();
     }
 
     /**
@@ -96,9 +72,10 @@ class Daemon
      * @param array $config
      * @return $this
      */
-    public function setQueueConfig(array $config = [])
+    protected function setQueueConfig(array $config = [])
     {
         $this->setConfig('queueConfig', $config);
+        $this->queueName = $this->queueConfig['queueName'];
         return $this;
     }
 
@@ -112,7 +89,7 @@ class Daemon
         $this->setConfig('processConfig', $config);
         ##################### 不允许修改的值 #####################
         // 队列基础名称修改成队列名
-        $this->processConfig['baseTitle'] = $this->queueConfig['queueName'];
+        $this->processConfig['baseTitle'] = $this->queueName;
         // 每次执行任务睡眠时间(微秒)设置成0，因为work中有睡眠
         $this->processConfig['executeUSleep'] = 0;
         // 进程前缀
@@ -131,22 +108,10 @@ class Daemon
     }
 
     /**
-     * 设置配置
-     * @param $variable
-     * @param array $config
-     */
-    private function setConfig($variable, array $config = [])
-    {
-        foreach ($config as $k => $v) {
-            $this->$variable[$k] = $v;
-        }
-    }
-
-    /**
      * 工作进程的初始化
      * @return \Closure
      */
-    final public function getWorkInit()
+    public function getWorkInit()
     {
         $config = $this->queueConfig;
         // 初始化队列消费者
@@ -159,7 +124,7 @@ class Daemon
      * 工作进程的运行
      * @return \Closure
      */
-    final public function getWork()
+    public function getWork()
     {
         // 执行的工作内容
         return function(ProcessWorker $process, Worker $worker) {

@@ -1,16 +1,16 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\SingleWork;
 
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 /**
  * restart 命令动作
  * Class ReStart
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\SingleWork
  */
 class ReStart extends Action
 {
@@ -22,11 +22,13 @@ class ReStart extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
+        $daemon = SingleWorkDaemon::getInstance();
 
-        (new Manage($daemon->getProcessConfig()))
-            ->setWorkInit($daemon->getWorkInit())       // 设置初始化
-            ->setWork($daemon->getWork())               // 设置任务
+        $work = $daemon->getWork();
+
+        (new Manage($work->getProcessConfig()))
+            ->setWorkInit($work->getWorkInit())       // 设置初始化
+            ->setWork($work->getWork())               // 设置任务
             ->setBackground()                           // 后台执行
             ->restart();                                // restart
     }

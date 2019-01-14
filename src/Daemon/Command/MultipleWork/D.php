@@ -1,6 +1,6 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\MultipleWork;
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Command\Options\Options;
@@ -8,7 +8,7 @@ use ProcessManage\Command\Options\Options;
 /**
  * d 参数的动作
  * Class D
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\MultipleWork
  */
 class D extends Options
 {

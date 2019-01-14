@@ -1,15 +1,15 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\SingleWork;
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 /**
  * stop 命令动作
  * Class Stop
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\SingleWork
  */
 class Stop extends Action
 {
@@ -21,8 +21,9 @@ class Stop extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
-        (new Manage($daemon->getProcessConfig()))->stop();
+        $daemon = SingleWorkDaemon::getInstance();
+        $work = $daemon->getWork();
+        (new Manage($work->getProcessConfig()))->stop();
     }
 
     /**

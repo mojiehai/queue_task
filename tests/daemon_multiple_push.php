@@ -16,6 +16,7 @@ $config = [
             'queueName' => 'testQueue1', //队列名称
         ],
         'processConfig' => [
+            'baseTitle' => 'testQueue1_push',
             // master 进程配置
             'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
             'maxWorkerNum' => 1,            //2个进程
@@ -32,6 +33,7 @@ $config = [
             'queueName' => 'testQueue2', //队列名称
         ],
         'processConfig' => [
+            'baseTitle' => 'testQueue2_push',
             // master 进程配置
             'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
             'maxWorkerNum' => 2,            //2个进程

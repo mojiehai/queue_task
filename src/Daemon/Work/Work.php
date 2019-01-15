@@ -37,6 +37,8 @@ class Work
      * @var array
      */
     protected $processConfig = [
+        'baseTitle' => '',      // 进程名称
+
         // master 进程配置
         'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
         'maxWorkerNum' => 1,            //1个进程
@@ -89,8 +91,10 @@ class Work
     {
         $this->setConfig('processConfig', $config);
         ##################### 不允许修改的值 #####################
-        // 队列基础名称修改成队列名
-        $this->processConfig['baseTitle'] = $this->queueName;
+        if (empty($this->processConfig['baseTitle'])) {
+            // 如果为空，队列基础名称修改成队列名
+            $this->processConfig['baseTitle'] = $this->queueName;
+        }
         // 进程前缀
         $this->processConfig['titlePrefix'] = 'queue_task';
         ##################### 不允许修改的值 #####################

@@ -27,7 +27,7 @@ class Worker
 
     /**
      * 监听队列的名称(在push的时候把任务推送到哪个队列，则需要监听相应的队列才能获取任务)
-     * @var string
+     * @var string|array
      */
     public $queueName = 'default';
 
@@ -111,8 +111,13 @@ class Worker
     {
         $job = null;
 
-        //弹出任务
-        $job = $this->queue->pop($this->queueName);
+        // 获取队列名称
+        $queueName = $this->getQueueName();
+
+        if (!empty($queueName)) {
+            //弹出任务
+            $job = $this->queue->pop($queueName);
+        }
 
         if($job instanceof Job) {
 
@@ -130,7 +135,7 @@ class Worker
                     $job->failed();
                 } else {
                     // 未给定最大重试次数限制，或者没有超过最大重试限制，则重新将任务放入队尾
-                    $job->release($this->queue, $this->queueName, $this->delay);
+                    $job->release($this->queue, $queueName, $this->delay);
                 }
             }
         } else {
@@ -155,6 +160,23 @@ class Worker
         return $this->isStop;
     }
 
+    /**
+     * 获取队列名称
+     * @return string
+     */
+    protected function getQueueName()
+    {
+        $queueName = '';
+        if (is_array($this->queueName)) {
+            $randKey = array_rand($this->queueName);
+            if (!is_null($randKey)) {
+                $queueName = $this->queueName[$randKey];
+            }
+        } else {
+            $queueName = $this->queueName;
+        }
+        return $queueName;
+    }
 
     /**
      * 判断内存使用是否超出

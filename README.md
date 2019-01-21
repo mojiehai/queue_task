@@ -278,7 +278,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ],
      
             ######################### 守护进程配置 ###########################
-            Process = [
+            'Process' = [
                 'PidRoot' => '/tmp/queue_task/pid',
                 'TitlePrefix' => 'queue_task',
                 'StatusFileRoot' => '/tmp/queue_task/status',

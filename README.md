@@ -116,7 +116,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
  
 ```
 ### 监听任务
-1. 启动监听任务
+1. 以普通方式启动监听任务
     ```php
     $config = [
         'queueName' => 'queue_name_1', //队列名称
@@ -261,7 +261,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             'currentConnect' => 'Redis',
      
             ######################### 日志配置 ###########################
-            'Log' = [
+            'Log' => [
                 'LogBaseRoot' => __DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'runtime'.DIRECTORY_SEPARATOR.'log', 
         
                 'Debug_FileNamePrefix' => '',
@@ -278,9 +278,8 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ],
      
             ######################### 守护进程配置 ###########################
-            Process = [
+            'Process' => [
                 'PidRoot' => '/tmp/queue_task/pid',
-                'TitlePrefix' => 'queue_task',
                 'StatusFileRoot' => '/tmp/queue_task/status',
             ],
         ]

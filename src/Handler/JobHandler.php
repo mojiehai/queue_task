@@ -20,10 +20,15 @@ abstract class JobHandler
      * @param String $func     执行的方法
      * @param array $data     参数
      * @return mixed
+     * @throws TaskException
      */
     public function handler($job, $func, $data)
     {
-        $this->$func($job, $data);
+        if (method_exists($this, $func)) {
+            $this->$func($job, $data);
+        } else {
+            $this->throwOnceFailure('method "'.$func .'" does not exist');
+        }
     }
 
 

@@ -34,6 +34,10 @@ class Job
      * @var int 已经执行次数
      */
     protected $attempts;
+    /**
+     * @var TaskException[] 异常数组
+     */
+    protected $exceptionArr = [];
 
     /**
      * @param JobHandler $handler 回调类
@@ -115,6 +119,7 @@ class Job
 
             $this -> isexec = false;
 
+            $this->exceptionArr = $e;
         }
 
     }
@@ -129,6 +134,28 @@ class Job
         return $this->isexec;
     }
 
+
+    /**
+     * 获取任务失败的异常数组
+     * @return TaskException[]
+     */
+    public function getExceptions()
+    {
+        return $this->exceptionArr;
+    }
+
+    /**
+     * 获取错误信息数组
+     * @return string[]
+     */
+    public function getErrors()
+    {
+        $error = [];
+        foreach ($this->exceptionArr as $v) {
+            $error[] = $v->getMessage();
+        }
+        return $error;
+    }
 
     /**
      * 重试该任务

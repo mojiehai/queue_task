@@ -116,7 +116,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
  
 ```
 ### 监听任务
-1. 启动监听任务
+1. 以普通方式启动监听任务
     ```php
     $config = [
         'queueName' => 'queue_name_1', //队列名称

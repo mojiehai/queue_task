@@ -14,7 +14,7 @@ use QueueTask\Queue\Queue;
 class Work
 {
     /**
-     * 队列名称
+     * 队列名称(多队列轮询情况，则为|分隔的多队列名称拼接的字符串)
      * @var string
      */
     public $queueName = '';
@@ -24,7 +24,7 @@ class Work
      * @var array
      */
     protected $queueConfig = [
-        'queueName' => 'default', //队列名称(同时为进程的基础名称)
+        'queueName' => 'default', //队列名称(同时默认为进程的基础名称)(字符串或者数组)
         'attempt' => 10,     //队列任务失败尝试次数，0为不限制
         'memory' => 128,    //允许使用的最大内存  单位:M
         'sleep' => 3,       //每次检测的时间间隔
@@ -78,7 +78,11 @@ class Work
     protected function setQueueConfig(array $config = [])
     {
         $this->setConfig('queueConfig', $config);
-        $this->queueName = $this->queueConfig['queueName'];
+        if (is_array($this->queueConfig['queueName'])) {
+            $this->queueName = implode('|', $this->queueConfig['queueName']);
+        } else {
+            $this->queueName = $this->queueConfig['queueName'];
+        }
         return $this;
     }
 

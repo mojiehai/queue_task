@@ -56,10 +56,10 @@ class Worker
     public $delay = 0;
 
     /**
-     * 最大运行时间
+     * 最大运行时间,0为不限制
      * @var int 秒
      */
-    public $maxRunTime = 300;
+    public $maxRunTime = 0;
 
     /**
      * 允许配置的变量名
@@ -231,7 +231,7 @@ class Worker
      */
     protected function checkMoreThanRunTime($startTime)
     {
-        if (time() > ($startTime + $this->maxRunTime)) {
+        if ($this->maxRunTime > 0 && time() > ($startTime + $this->maxRunTime)) {
             $this->setStop();
         }
     }

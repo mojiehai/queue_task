@@ -56,10 +56,16 @@ class Worker
     public $delay = 0;
 
     /**
+     * 最大运行时间
+     * @var int 秒
+     */
+    public $maxRunTime = 300;
+
+    /**
      * 允许配置的变量名
      * @var array
      */
-    protected $configNameList = ['queueName', 'attempt', 'memory', 'sleep', 'delay'];
+    protected $configNameList = ['queueName', 'attempt', 'memory', 'sleep', 'delay', 'maxRunTime'];
 
     /**
      * Worker constructor.
@@ -92,10 +98,14 @@ class Worker
      */
     public function listen()
     {
+        $startTime = time();
         while (true) {
 
             //消费一次队列任务
             $this->runOnce();
+
+            // 检查最大执行时间
+            $this->checkMoreThanRunTime($startTime);
 
             // 退出监听
             if ($this->isStop()) {
@@ -212,6 +222,17 @@ class Worker
     {
         if ($seconds > 0) {
             sleep($seconds);
+        }
+    }
+
+    /**
+     * 检查最大运行时间
+     * @param $startTime
+     */
+    protected function checkMoreThanRunTime($startTime)
+    {
+        if (time() > ($startTime + $this->maxRunTime)) {
+            $this->setStop();
         }
     }
 

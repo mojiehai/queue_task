@@ -35,9 +35,9 @@ class Job
      */
     protected $attempts;
     /**
-     * @var TaskException[] 异常数组
+     * @var string[] 异常信息数组
      */
-    protected $exceptionArr = [];
+    protected $errorArr = [];
 
     /**
      * @param JobHandler $handler 回调类
@@ -119,7 +119,7 @@ class Job
 
             $this -> isexec = false;
 
-            $this->exceptionArr = $e;
+            $this->errorArr[] = $e->getMessage();
         }
 
     }
@@ -136,25 +136,12 @@ class Job
 
 
     /**
-     * 获取任务失败的异常数组
-     * @return TaskException[]
-     */
-    public function getExceptions()
-    {
-        return $this->exceptionArr;
-    }
-
-    /**
-     * 获取错误信息数组
+     * 获取任务失败的异常信息数组
      * @return string[]
      */
     public function getErrors()
     {
-        $error = [];
-        foreach ($this->exceptionArr as $v) {
-            $error[] = $v->getMessage();
-        }
-        return $error;
+        return $this->errorArr;
     }
 
     /**

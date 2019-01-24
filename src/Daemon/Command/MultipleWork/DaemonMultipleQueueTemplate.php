@@ -23,6 +23,7 @@ class DaemonMultipleQueueTemplate extends Template
             'stop' => '\QueueTask\Daemon\Command\MultipleWork\Stop',
             'restart' => '\QueueTask\Daemon\Command\MultipleWork\ReStart',
             'status' => '\QueueTask\Daemon\Command\MultipleWork\Status',
+            'wakeup' => '\QueueTask\Daemon\Command\MultipleWork\WakeUp',
         ],
         'options' => [
             'd' => '\QueueTask\Daemon\Command\MultipleWork\D',
@@ -37,6 +38,6 @@ class DaemonMultipleQueueTemplate extends Template
      */
     public function getTemplateStr()
     {
-        return '<start|stop|restart|status> -[n|name] -[d]';
+        return '<start|stop|restart|status|wakeup> -[n|name] -[d]';
     }
 }

@@ -115,12 +115,21 @@ class Work
     }
 
     /**
+     * 获取队列配置
+     * @return array
+     */
+    public function getQueueConfig()
+    {
+        return $this->queueConfig;
+    }
+
+    /**
      * 工作进程的初始化
      * @return \Closure
      */
     public function getWorkInit()
     {
-        $config = $this->queueConfig;
+        $config = $this->getQueueConfig();
         // 初始化队列消费者
         return function (ProcessWorker $process) use ($config) {
             return (new Worker(Queue::getInstance()))->setConfig($config);
@@ -142,6 +151,33 @@ class Work
                 $process->setStop();
             }
         };
+    }
+
+
+    /**
+     * 将title换成queueName
+     * @param array $status
+     * @return array
+     */
+    public function formatQueueStatus(array $status)
+    {
+        $processConfig = $this->processConfig;
+        $titlePrefix = $processConfig['titlePrefix'];
+        $baseTitle = $processConfig['baseTitle'];
+        $title = [
+            $titlePrefix.':Master:'.$baseTitle,
+            $titlePrefix.':Worker:'.$baseTitle,
+        ];
+        foreach ($status as $type => $typeArr) {
+            foreach ($typeArr as $pid => $statusArr) {
+                foreach ($statusArr as $field => $value) {
+                    if ($field == 'title' && in_array($value, $title)) {
+                        $status[$type][$pid][$field] = $this->queueName;
+                    }
+                }
+            }
+        }
+        return $status;
     }
 
 }

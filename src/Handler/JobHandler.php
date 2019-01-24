@@ -66,12 +66,11 @@ abstract class JobHandler
      * 设置本次执行handler为失败
      * @param string $message
      * @param int $code
-     * @param Throwable $previous
      * @throws TaskException
      */
-    public function throwOnceFailure($message = "", $code = 0, Throwable $previous = null)
+    public function throwOnceFailure($message = "", $code = 0)
     {
-        throw new TaskException($message, $code, $previous);
+        throw new TaskException($message, $code);
     }
 
 } 

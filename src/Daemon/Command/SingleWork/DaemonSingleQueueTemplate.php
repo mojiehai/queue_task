@@ -23,6 +23,7 @@ class DaemonSingleQueueTemplate extends Template
             'stop' => '\QueueTask\Daemon\Command\SingleWork\Stop',
             'restart' => '\QueueTask\Daemon\Command\SingleWork\ReStart',
             'status' => '\QueueTask\Daemon\Command\SingleWork\Status',
+            'wakeup' => '\QueueTask\Daemon\Command\SingleWork\WakeUp',
         ],
         'options' => [
             'd' => '\QueueTask\Daemon\Command\SingleWork\D',
@@ -35,6 +36,6 @@ class DaemonSingleQueueTemplate extends Template
      */
     public function getTemplateStr()
     {
-        return '<start|stop|restart|status> -[d]';
+        return '<start|stop|restart|status|wakeup> -[d]';
     }
 }

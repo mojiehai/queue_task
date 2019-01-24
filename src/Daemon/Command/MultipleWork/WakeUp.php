@@ -2,7 +2,6 @@
 
 namespace QueueTask\Daemon\Command\MultipleWork;
 
-
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Process\Manage;
 use QueueTask\Daemon\MultipleWorkDaemon;
@@ -10,11 +9,11 @@ use ProcessManage\Exception\Exception;
 use ProcessManage\Process\ManageMultiple;
 
 /**
- * status 命令动作
- * Class Status
+ * wakeup 命令动作
+ * Class Stop
  * @package QueueTask\Daemon\Command\MultipleWork
  */
-class Status extends Action
+class WakeUp extends Action
 {
 
     /**
@@ -24,20 +23,19 @@ class Status extends Action
      */
     public function handler()
     {
+
         $daemon = MultipleWorkDaemon::getInstance();
 
-        $workList = [];
         if ($queueName = $this->getParam('queueName')) {
             // 单任务
             $work = $daemon->getWork($queueName);
-            $workList[] = $work;
 
             if (!empty($work)) {
 
-                $status = (new Manage($work->getProcessConfig()))
+                (new Manage($work->getProcessConfig()))
                     ->setWorkInit($work->getWorkInit())
                     ->setWork($work->getWork())
-                    ->status();
+                    ->wakeup();
 
             } else {
                 throw new Exception('There is no such queue');
@@ -47,8 +45,7 @@ class Status extends Action
             // 多任务
             $multipleManage = new ManageMultiple();
 
-            $workList = $daemon->getWorks();
-            foreach ($workList as $work) {
+            foreach ($daemon->getWorks() as $work) {
                 // 添加多个manage
                 $multipleManage->addManage(
                     (new Manage($work->getProcessConfig()))
@@ -57,22 +54,8 @@ class Status extends Action
                 );
             }
 
-            $status = $multipleManage->status();
-
-
+            $multipleManage->wakeup();
         }
-
-        $queueConfig = ['QueueConfig' => []];
-        // 转换queue_name
-        foreach ($workList as $work) {
-            $status = $work->formatQueueStatus($status);
-            $queueConfig['QueueConfig'][] = $work->getQueueConfig();
-        }
-
-        $status = array_merge($queueConfig, $status);
-
-        // 格式化显示
-        Manage::showStatus($status);
     }
 
     /**
@@ -81,7 +64,7 @@ class Status extends Action
      */
     public static function getCommandStr()
     {
-        return 'status';
+        return 'wakeup';
     }
 
     /**
@@ -90,6 +73,6 @@ class Status extends Action
      */
     public static function getCommandDescription()
     {
-        return 'process status';
+        return 'wakeup worker process';
     }
 }

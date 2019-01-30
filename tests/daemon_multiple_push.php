@@ -4,6 +4,7 @@ require __DIR__."/bootstrap.php";
 
 use QueueTask\Load\Load;
 use QueueTask\Daemon\MultipleWorkDaemon;
+use QueueTask\Daemon\Command\MultipleWork\MultipleWork;
 use QueueTask\Daemon\Work\Work;
 
 $config = include './config.php';
@@ -50,14 +51,17 @@ $config = [
 
 try {
     // 监听命令
-    $multiple = MultipleWorkDaemon::getInstance();
-    $multiple->addWork(
+    $multipleWork = new MultipleWork();
+    $multipleWork->addWork(
         (new PushWork($config['work1']['queueConfig']))->setProcessConfig($config['work1']['processConfig'])
     );
-    $multiple->addWork(
+    $multipleWork->addWork(
         (new PushDelayWork($config['work2']['queueConfig']))->setProcessConfig($config['work2']['processConfig'])
     );
-    $multiple->listenCommand();
+
+    $multiple = MultipleWorkDaemon::getInstance();
+    $multiple->setMultipleWork($multipleWork)->listenCommand();
 
 } catch (\ProcessManage\Exception\Exception $e) {
+    echo $e->getMessage();
 }

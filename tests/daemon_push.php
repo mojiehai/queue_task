@@ -4,6 +4,7 @@ require __DIR__."/bootstrap.php";
 
 use QueueTask\Load\Load;
 use QueueTask\Daemon\SingleWorkDaemon;
+use QueueTask\Daemon\Command\SingleWork\SingleWork;
 
 $config = include './config.php';
 
@@ -28,9 +29,11 @@ $processConfig = [
 
 // 监听命令
 try{
-    SingleWorkDaemon::getInstance(
+    $singleWork = new SingleWork(
         //(new PushWork($queueConfig))->setProcessConfig($processConfig)
         (new PushDelayWork($queueConfig))->setProcessConfig($processConfig)
-    )->listenCommand();
+    );
+    SingleWorkDaemon::getInstance($singleWork)->listenCommand();
 } catch (\ProcessManage\Exception\Exception $e) {
+    echo $e->getMessage();
 }

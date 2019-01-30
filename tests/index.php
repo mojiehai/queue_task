@@ -12,7 +12,7 @@ Load::Queue($config);
 
 $res = Queue::getInstance();
 
-$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue');
+$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue1');
 $r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue2');
 $r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue3');
 //$r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'testQueue');

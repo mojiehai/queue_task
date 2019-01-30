@@ -5,13 +5,14 @@ require __DIR__."/bootstrap.php";
 use QueueTask\Load\Load;
 use QueueTask\Daemon\SingleWorkDaemon;
 use QueueTask\Daemon\Work\Work;
+use QueueTask\Daemon\Command\SingleWork\SingleWork;
 
 $config = include './config.php';
 
 Load::Queue($config);
 
 $queueConfig = [
-    'queueName' => 'testQueue', //队列名称
+    'queueName' => 'testQueue1', //队列名称
     'attempt' => 3,     //队列任务失败尝试次数，0为不限制
     'memory' => 128,    //允许使用的最大内存  单位:M
     'sleep' => 3,       //每次检测的时间间隔
@@ -30,10 +31,12 @@ $processConfig = [
 
 
 try {
-    // 监听命令
-    (SingleWorkDaemon::getInstance(
+    $singleWork = new SingleWork(
         (new Work($queueConfig))->setProcessConfig($processConfig)
-    ))->listenCommand();
+    );
+    // 监听命令
+    (SingleWorkDaemon::getInstance($singleWork))->listenCommand();
 
 } catch (\ProcessManage\Exception\Exception $e) {
+    echo $e->getMessage();
 }

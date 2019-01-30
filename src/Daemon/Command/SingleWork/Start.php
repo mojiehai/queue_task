@@ -24,17 +24,10 @@ class Start extends Action
     {
         $daemon = SingleWorkDaemon::getInstance();
 
-        $work = $daemon->getWork();
+        $singleWork = $daemon->getSingleWork();
 
-        $manage = new Manage($work->getProcessConfig());
+        $singleWork->commandStart();
 
-        $manage->setWorkInit($work->getWorkInit())->setWork($work->getWork());
-
-        if ($this->getParam('runInBackground')) {
-            // 后台运行
-            $manage->setBackground();
-        }
-        $manage->start();
     }
 
     /**

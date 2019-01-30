@@ -25,37 +25,9 @@ class Stop extends Action
     {
 
         $daemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $daemon->getMultipleWork();
+        $multipleWork->commandStop();
 
-        if ($queueName = $this->getParam('queueName')) {
-            // 单任务
-            $work = $daemon->getWork($queueName);
-
-            if (!empty($work)) {
-
-                (new Manage($work->getProcessConfig()))
-                    ->setWorkInit($work->getWorkInit())
-                    ->setWork($work->getWork())
-                    ->stop();
-
-            } else {
-                throw new Exception('There is no such queue');
-            }
-
-        } else {
-            // 多任务
-            $multipleManage = new ManageMultiple();
-
-            foreach ($daemon->getWorks() as $work) {
-                // 添加多个manage
-                $multipleManage->addManage(
-                    (new Manage($work->getProcessConfig()))
-                        ->setWorkInit($work->getWorkInit())
-                        ->setWork($work->getWork())
-                );
-            }
-
-            $multipleManage->stop();
-        }
     }
 
     /**

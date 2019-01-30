@@ -3,10 +3,7 @@
 namespace QueueTask\Daemon\Command\MultipleWork;
 
 use ProcessManage\Command\Action\Action;
-use ProcessManage\Process\Manage;
 use QueueTask\Daemon\MultipleWorkDaemon;
-use ProcessManage\Exception\Exception;
-use ProcessManage\Process\ManageMultiple;
 
 /**
  * wakeup 命令动作
@@ -25,37 +22,9 @@ class WakeUp extends Action
     {
 
         $daemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $daemon->getMultipleWork();
+        $multipleWork->commandWakeup();
 
-        if ($queueName = $this->getParam('queueName')) {
-            // 单任务
-            $work = $daemon->getWork($queueName);
-
-            if (!empty($work)) {
-
-                (new Manage($work->getProcessConfig()))
-                    ->setWorkInit($work->getWorkInit())
-                    ->setWork($work->getWork())
-                    ->wakeup();
-
-            } else {
-                throw new Exception('There is no such queue');
-            }
-
-        } else {
-            // 多任务
-            $multipleManage = new ManageMultiple();
-
-            foreach ($daemon->getWorks() as $work) {
-                // 添加多个manage
-                $multipleManage->addManage(
-                    (new Manage($work->getProcessConfig()))
-                        ->setWorkInit($work->getWorkInit())
-                        ->setWork($work->getWork())
-                );
-            }
-
-            $multipleManage->wakeup();
-        }
     }
 
     /**

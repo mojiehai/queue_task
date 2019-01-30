@@ -22,8 +22,9 @@ class Stop extends Action
     public function handler()
     {
         $daemon = SingleWorkDaemon::getInstance();
-        $work = $daemon->getWork();
-        (new Manage($work->getProcessConfig()))->stop();
+        $singleWork = $daemon->getSingleWork();
+        $singleWork->commandStop();
+
     }
 
     /**

@@ -5,7 +5,7 @@ namespace QueueTask\Daemon;
 use ProcessManage\Command\Command;
 use ProcessManage\Exception\Exception;
 use QueueTask\Daemon\Command\MultipleWork\DaemonMultipleQueueTemplate;
-use QueueTask\Daemon\Work\Work;
+use QueueTask\Daemon\Command\MultipleWork\MultipleWork;
 
 
 /**
@@ -22,10 +22,9 @@ class MultipleWorkDaemon
     protected static $instance = null;
 
     /**
-     * 工作列表
-     * @var Work[]
+     * @var MultipleWork
      */
-    protected $works = [];
+    protected $multipleWork = null;
 
     /**
      * Daemon constructor.
@@ -55,49 +54,31 @@ class MultipleWorkDaemon
     }
 
     /**
-     * 添加work
-     * @param Work $work
+     * 设置工作集合
+     * @param MultipleWork $multipleWork
      * @return $this
      */
-    public function addWork(Work $work) {
-        $this->works[$work->queueName] = $work;
+    public function setMultipleWork(MultipleWork $multipleWork)
+    {
+        $this->multipleWork = $multipleWork;
         return $this;
     }
 
     /**
-     * 获取所有work
-     * @return Work[]
+     * 获取工作集合
+     * @return MultipleWork
      */
-    public function getWorks()
+    public function getMultipleWork()
     {
-        return $this->works;
-    }
-
-    /**
-     * 获取单个work
-     * @param $queueName
-     * @return Work|null
-     */
-    public function getWork($queueName)
-    {
-        if (isset($this->works[$queueName])) {
-            return $this->works[$queueName];
-        } else {
-            return null;
-        }
+        return $this->multipleWork;
     }
 
     /**
      * 监听命令
-     * @throws Exception
      */
     public function listenCommand()
     {
-        if (!empty($this->works)) {
-            (new Command(new DaemonMultipleQueueTemplate()))->run();
-        } else {
-            throw new Exception('There is no work');
-        }
+        (new Command(new DaemonMultipleQueueTemplate()))->run();
     }
 
 }

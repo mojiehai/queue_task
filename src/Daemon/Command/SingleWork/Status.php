@@ -23,10 +23,9 @@ class Status extends Action
     public function handler()
     {
         $daemon = SingleWorkDaemon::getInstance();
-        $work = $daemon->getWork();
-        Manage::showStatus(
-            (new Manage($work->getProcessConfig()))->status()
-        );
+        $singleWork = $daemon->getSingleWork();
+        $singleWork->commandStatus();
+
     }
 
     /**

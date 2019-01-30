@@ -4,6 +4,7 @@ namespace QueueTask\Daemon\Command\MultipleWork;
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Command\Options\Options;
+use QueueTask\Daemon\MultipleWorkDaemon;
 
 /**
  * name 参数的动作
@@ -41,6 +42,8 @@ class Name extends Options
      */
     public function impactAction(Action $action)
     {
-        $action->setParam('queueName', $this->param);
+        $multipleDaemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $multipleDaemon->getMultipleWork();
+        $multipleWork->queueName = $this->param;
     }
 }

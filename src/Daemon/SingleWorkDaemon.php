@@ -5,7 +5,7 @@ namespace QueueTask\Daemon;
 use ProcessManage\Command\Command;
 use ProcessManage\Exception\Exception;
 use QueueTask\Daemon\Command\SingleWork\DaemonSingleQueueTemplate;
-use QueueTask\Daemon\Work\Work;
+use QueueTask\Daemon\Command\SingleWork\SingleWork;
 
 
 /**
@@ -22,17 +22,17 @@ class SingleWorkDaemon
     protected static $instance = null;
 
     /**
-     * @var Work
+     * @var SingleWork
      */
-    protected $work = null;
+    protected $singleWork = null;
 
     /**
      * Daemon constructor.
-     * @param Work $work 工作描述类
+     * @param SingleWork $singleWork 单工作类
      */
-    protected function __construct(Work $work)
+    protected function __construct(SingleWork $singleWork)
     {
-        $this->setWork($work);
+        $this->setSingleWork($singleWork);
     }
 
     /**
@@ -46,41 +46,40 @@ class SingleWorkDaemon
 
     /**
      * 单例
-     * @param Work $work 工作描述类
+     * @param SingleWork $singleWork 单工作类
      * @return SingleWorkDaemon
      * @throws Exception
      */
-    public static function getInstance(Work $work = null)
+    public static function getInstance(SingleWork $singleWork = null)
     {
         if (!(static::$instance instanceof static)) {
-            if (!empty($work)) {
-                static::$instance = new SingleWorkDaemon($work);
+            if (!empty($singleWork)) {
+                static::$instance = new SingleWorkDaemon($singleWork);
             } else {
                 throw new Exception('There is no work');
             }
         } else {
-            if (!empty($work)) {
-                static::$instance->setWork($work);
+            if (!empty($singleWork)) {
+                static::$instance->setSingleWork($singleWork);
             }
         }
         return static::$instance;
     }
 
     /**
-     * 设置work
-     * @param Work $work
+     * @param SingleWork $singleWork
      */
-    private function setWork(Work $work) {
-        $this->work = $work;
+    private function setSingleWork(SingleWork $singleWork)
+    {
+        $this->singleWork = $singleWork;
     }
 
     /**
-     * 获取work
-     * @return Work
+     * @return SingleWork
      */
-    public function getWork()
+    public function getSingleWork()
     {
-        return $this->work;
+        return $this->singleWork;
     }
 
     /**

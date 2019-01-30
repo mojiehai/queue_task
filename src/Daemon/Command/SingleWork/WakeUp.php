@@ -22,8 +22,9 @@ class WakeUp extends Action
     public function handler()
     {
         $daemon = SingleWorkDaemon::getInstance();
-        $work = $daemon->getWork();
-        (new Manage($work->getProcessConfig()))->wakeup();
+        $singleWork = $daemon->getSingleWork();
+        $singleWork->commandWakeup();
+
     }
 
     /**

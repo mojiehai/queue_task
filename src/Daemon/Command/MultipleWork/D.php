@@ -4,6 +4,7 @@ namespace QueueTask\Daemon\Command\MultipleWork;
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Command\Options\Options;
+use QueueTask\Daemon\MultipleWorkDaemon;
 
 /**
  * d 参数的动作
@@ -41,6 +42,8 @@ class D extends Options
      */
     public function impactAction(Action $action)
     {
-        $action->setParam('runInBackground', true);
+        $multipleDaemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $multipleDaemon->getMultipleWork();
+        $multipleWork->background = true;
     }
 }

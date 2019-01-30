@@ -24,13 +24,10 @@ class ReStart extends Action
     {
         $daemon = SingleWorkDaemon::getInstance();
 
-        $work = $daemon->getWork();
+        $singleWork = $daemon->getSingleWork();
 
-        (new Manage($work->getProcessConfig()))
-            ->setWorkInit($work->getWorkInit())       // 设置初始化
-            ->setWork($work->getWork())               // 设置任务
-            ->setBackground()                           // 后台执行
-            ->restart();                                // restart
+        $singleWork->commandRestart();
+
     }
 
     /**

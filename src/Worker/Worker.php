@@ -121,13 +121,8 @@ class Worker
     {
         $job = null;
 
-        // 获取队列名称
-        $queueName = $this->getQueueName();
-
-        if (!empty($queueName)) {
-            //弹出任务
-            $job = $this->queue->pop($queueName);
-        }
+        // job任务
+        list($job, $queueName) = $this->getJobAndQueueName($this->queue);
 
         if($job instanceof Job) {
 
@@ -171,21 +166,30 @@ class Worker
     }
 
     /**
-     * 获取队列名称
-     * @return string
+     * 获取出队job和队列名称
+     * @param Queue $queue
+     * @return array
+     *      [Job, QueueName]
      */
-    protected function getQueueName()
+    protected function getJobAndQueueName(Queue $queue)
     {
         $queueName = '';
+        $job = null;
         if (is_array($this->queueName)) {
-            $randKey = array_rand($this->queueName);
-            if (!is_null($randKey)) {
-                $queueName = $this->queueName[$randKey];
+            $tmpQueueNames = $this->queueName;
+            shuffle($tmpQueueNames);
+            foreach ($tmpQueueNames as $name) {
+                $job = $queue->pop($name);
+                if ($job) {
+                    $queueName = $name;
+                    break;
+                }
             }
         } else {
             $queueName = $this->queueName;
+            $job = $queue->pop($queueName);
         }
-        return $queueName;
+        return [$job, $queueName];
     }
 
     /**

@@ -157,10 +157,11 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     
     
     try {
-        // 监听命令
-        (SingleWorkDaemon::getInstance(
+        $singleWork = new SingleWork(
             (new Work($queueConfig))->setProcessConfig($processConfig)
-        ))->listenCommand();
+        );
+        // 监听命令
+        (SingleWorkDaemon::getInstance($singleWork))->listenCommand();
     
     } catch (\ProcessManage\Exception\Exception $e) {
     }
@@ -210,14 +211,15 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     
     try {
         // 监听命令
-        $multiple = MultipleWorkDaemon::getInstance();
-        $multiple->addWork(
+        $multipleWork = new MultipleWork();
+        $multipleWork->addWork(
             (new Work($config['work1']['queueConfig']))->setProcessConfig($config['work1']['processConfig'])
         );
-        $multiple->addWork(
+        $multipleWork->addWork(
             (new Work($config['work2']['queueConfig']))->setProcessConfig($config['work2']['processConfig'])
         );
-        $multiple->listenCommand();
+        $multiple = MultipleWorkDaemon::getInstance();
+        $multiple->setMultipleWork($multipleWork)->listenCommand();
     
     } catch (\ProcessManage\Exception\Exception $e) {
     }

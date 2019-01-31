@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "67740ecc62d9caf7ee2b12c32a7d0d59",
+    "content-hash": "b22a281ee7ce6c7ede62d3b077d81fd4",
     "packages": [
         {
             "name": "mojiehai/process_manage",
-            "version": "1.0.2",
+            "version": "1.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mojiehai/process_manage.git",
-                "reference": "426060ca65d6049e232b8a835aac01f1fc8a9c2f"
+                "reference": "3ba037be1f0d45ca958995d2aefdf494481788b1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mojiehai/process_manage/zipball/426060ca65d6049e232b8a835aac01f1fc8a9c2f",
-                "reference": "426060ca65d6049e232b8a835aac01f1fc8a9c2f",
+                "url": "https://api.github.com/repos/mojiehai/process_manage/zipball/3ba037be1f0d45ca958995d2aefdf494481788b1",
+                "reference": "3ba037be1f0d45ca958995d2aefdf494481788b1",
                 "shasum": ""
             },
             "require": {
@@ -48,7 +48,7 @@
                 "manage",
                 "process"
             ],
-            "time": "2018-12-25T08:14:31+00:00"
+            "time": "2019-01-30T07:36:36+00:00"
         }
     ],
     "packages-dev": [],

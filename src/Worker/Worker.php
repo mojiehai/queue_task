@@ -27,7 +27,7 @@ class Worker
 
     /**
      * 监听队列的名称(在push的时候把任务推送到哪个队列，则需要监听相应的队列才能获取任务)
-     * @var string
+     * @var string|array
      */
     public $queueName = 'default';
 
@@ -56,10 +56,16 @@ class Worker
     public $delay = 0;
 
     /**
+     * 最大运行时间,0为不限制
+     * @var int 秒
+     */
+    public $maxRunTime = 0;
+
+    /**
      * 允许配置的变量名
      * @var array
      */
-    protected $configNameList = ['queueName', 'attempt', 'memory', 'sleep', 'delay'];
+    protected $configNameList = ['queueName', 'attempt', 'memory', 'sleep', 'delay', 'maxRunTime'];
 
     /**
      * Worker constructor.
@@ -92,10 +98,14 @@ class Worker
      */
     public function listen()
     {
+        $startTime = time();
         while (true) {
 
             //消费一次队列任务
             $this->runOnce();
+
+            // 检查最大执行时间
+            $this->checkMoreThanRunTime($startTime);
 
             // 退出监听
             if ($this->isStop()) {
@@ -111,8 +121,8 @@ class Worker
     {
         $job = null;
 
-        //弹出任务
-        $job = $this->queue->pop($this->queueName);
+        // job任务
+        list($job, $queueName) = $this->getJobAndQueueName($this->queue);
 
         if($job instanceof Job) {
 
@@ -130,7 +140,7 @@ class Worker
                     $job->failed();
                 } else {
                     // 未给定最大重试次数限制，或者没有超过最大重试限制，则重新将任务放入队尾
-                    $job->release($this->queue, $this->queueName, $this->delay);
+                    $job->release($this->queue, $queueName, $this->delay);
                 }
             }
         } else {
@@ -155,6 +165,32 @@ class Worker
         return $this->isStop;
     }
 
+    /**
+     * 获取出队job和队列名称
+     * @param Queue $queue
+     * @return array
+     *      [Job, QueueName]
+     */
+    protected function getJobAndQueueName(Queue $queue)
+    {
+        $queueName = '';
+        $job = null;
+        if (is_array($this->queueName)) {
+            $tmpQueueNames = $this->queueName;
+            shuffle($tmpQueueNames);
+            foreach ($tmpQueueNames as $name) {
+                $job = $queue->pop($name);
+                if ($job) {
+                    $queueName = $name;
+                    break;
+                }
+            }
+        } else {
+            $queueName = $this->queueName;
+            $job = $queue->pop($queueName);
+        }
+        return [$job, $queueName];
+    }
 
     /**
      * 判断内存使用是否超出
@@ -188,7 +224,20 @@ class Worker
      */
     protected function sleep($seconds)
     {
-        sleep($seconds);
+        if ($seconds > 0) {
+            sleep($seconds);
+        }
+    }
+
+    /**
+     * 检查最大运行时间
+     * @param $startTime
+     */
+    protected function checkMoreThanRunTime($startTime)
+    {
+        if ($this->maxRunTime > 0 && time() > ($startTime + $this->maxRunTime)) {
+            $this->setStop();
+        }
     }
 
 } 

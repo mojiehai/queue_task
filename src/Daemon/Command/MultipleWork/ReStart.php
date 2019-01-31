@@ -1,16 +1,15 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\MultipleWork;
 
 
 use ProcessManage\Command\Action\Action;
-use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\MultipleWorkDaemon;
 
 /**
  * restart 命令动作
  * Class ReStart
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\MultipleWork
  */
 class ReStart extends Action
 {
@@ -22,13 +21,11 @@ class ReStart extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
+        $daemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $daemon->getMultipleWork();
 
-        (new Manage($daemon->getProcessConfig()))
-            ->setWorkInit($daemon->getWorkInit())       // 设置初始化
-            ->setWork($daemon->getWork())               // 设置任务
-            ->setBackground()                           // 后台执行
-            ->restart();                                // restart
+        $multipleWork->commandRestart();
+
     }
 
     /**

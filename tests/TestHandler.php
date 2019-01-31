@@ -17,7 +17,7 @@ class TestHandler extends JobHandler
      */
     public function failed($job, $func, $data)
     {
-        \QueueTask\Log\WorkLog::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data));
+        \QueueTask\Log\WorkLog::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
     }
 
     /**
@@ -29,7 +29,7 @@ class TestHandler extends JobHandler
      */
     public function success($job, $func, $data)
     {
-        \QueueTask\Log\WorkLog::info('success run handler -- func: '.$func.' -- params: '.json_encode($data));
+        \QueueTask\Log\WorkLog::info('success run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
     }
 
 
@@ -38,10 +38,10 @@ class TestHandler extends JobHandler
         // 1/3几率成功
         if(rand(0,1) == 0) {
             $res = true;
-            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : '.var_export($res, true));
+            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : true');
         } else {
             $res = false;
-            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : '.var_export($res, true));
+            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');
             $this->throwOnceFailure('error ');
         }
     }

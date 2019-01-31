@@ -1,16 +1,16 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\SingleWork;
 
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 /**
  * status 命令动作
  * Class Status
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\SingleWork
  */
 class Status extends Action
 {
@@ -22,8 +22,10 @@ class Status extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
-        (new Manage($daemon->getProcessConfig()))->showStatus();
+        $daemon = SingleWorkDaemon::getInstance();
+        $singleWork = $daemon->getSingleWork();
+        $singleWork->commandStatus();
+
     }
 
     /**

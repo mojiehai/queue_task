@@ -57,7 +57,7 @@ $config = [
         ],
     ],
 
-    'currentConnect' => 'MySql',
+    'currentConnect' => 'Redis',
 ];
 Load::Queue($config);
 ############################## 全局配置 ##############################
@@ -78,7 +78,7 @@ class TestHandler extends JobHandler
      * @param array $data     参数
      * @return mixed
      */
-    public function failed($job, $func, $data)
+    public function failed(Job $job, $func, $data)
     {
         \QueueTask\Log\WorkLog::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data));
     }
@@ -90,13 +90,13 @@ class TestHandler extends JobHandler
      * @param array $data     参数
      * @return mixed
      */
-    public function success($job, $func, $data)
+    public function success(Job $job, $func, $data)
     {
         \QueueTask\Log\WorkLog::info('success run handler -- func: '.$func.' -- params: '.json_encode($data));
     }
 
 
-    public function test($job,$data)
+    public function test(Job $job,$data)
     {
         \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : '.var_export($res, true));
     }
@@ -116,7 +116,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
  
 ```
 ### 监听任务
-1. 启动监听任务
+1. 以普通方式启动监听任务
     ```php
     $config = [
         'queueName' => 'queue_name_1', //队列名称
@@ -135,10 +135,10 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     
     <br />
     
-2. 以守护进程方式启动监听任务，命令格式： `<start|stop|restart|status> -[d]` 对应 (`开启`/`停止`/`平滑重启`/`状态`)(`-d`为后台运行)
+2. 以守护进程方式启动监听单任务，命令格式： `<start|stop|restart|status> -[d]` 对应 (`开启`/`停止`/`平滑重启`/`状态`)(`-d`为后台运行)
     ```php
     $queueConfig = [
-        'queueName' => 'queue_name_1', //队列名称
+        'queueName' => 'queue_name_1', //队列名称(字符串或者数组，如果是数组，则每次随机从数组中取一个)
         'attempt' => 3,     //队列任务失败尝试次数，0为不限制
         'memory' => 128,    //允许使用的最大内存  单位:M
         'sleep' => 3,       //每次检测的时间间隔
@@ -148,18 +148,84 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
     $processConfig = [
         // master 进程配置
         'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
-        'maxWorkerNum' => 2,            //2个进程
+        'maxWorkerNum' => 1,            //2个进程
     
         // worker 进程配置
         'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
-        'limitSeconds' => 0,    // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制)
+        'limitSeconds' => 86400,    // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制)
     ];
     
     
-    // 监听命令
-    (Daemon::getInstance($queueConfig))->setProcessConfig($processConfig)->listenCommand();
-     
+    try {
+        $singleWork = new SingleWork(
+            (new Work($queueConfig))->setProcessConfig($processConfig)
+        );
+        // 监听命令
+        (SingleWorkDaemon::getInstance($singleWork))->listenCommand();
+    
+    } catch (\ProcessManage\Exception\Exception $e) {
+    }
     ```
+    
+3. 以守护进程方式启动监听多任务，命令格式：`<start|stop|restart|status> -[n|name] -[d]` 对应 (`开启`/`停止`/`平滑重启`/`状态`)(`-d`为后台运行, `-n`可以通过队列名称手动指定操作哪个队列,如果队列参数queueName为数组，队列名称则为`implode('|', $queueNameArr)`)
+    ```php
+    $config = [
+        'work1' => [
+            'queueConfig' => [
+                'queueName' => 'testQueue1', //队列名称
+                'attempt' => 3,     //队列任务失败尝试次数，0为不限制
+                'memory' => 128,    //允许使用的最大内存  单位:M
+                'sleep' => 3,       //每次检测的时间间隔
+                'delay' => 1,       //失败后延迟的秒数重新入队列
+            ],
+            'processConfig' => [
+                // master 进程配置
+                'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
+                'maxWorkerNum' => 1,            //1个进程
+    
+                // worker 进程配置
+                'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
+                'limitSeconds' => 86400, // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制) (默认1天重启一次)
+            ]
+        ],
+        'work2' => [
+            'queueConfig' => [
+                'queueName' => 'testQueue2', //队列名称
+                'attempt' => 3,     //队列任务失败尝试次数，0为不限制
+                'memory' => 128,    //允许使用的最大内存  单位:M
+                'sleep' => 3,       //每次检测的时间间隔
+                'delay' => 1,       //失败后延迟的秒数重新入队列
+            ],
+            'processConfig' => [
+                // master 进程配置
+                'checkWorkerInterval' => 600,   // 10分钟检测一次进程数量
+                'maxWorkerNum' => 1,            //1个进程
+    
+                // worker 进程配置
+                'executeTimes' => 0,    // 任务的最大执行次数(到次数后停止，master进程重新启动)(0为不限制)
+                'limitSeconds' => 86400, // 工作进程最大执行时长(秒)(到时间后停止，master进程重新启动)(0为不限制) (默认1天重启一次)
+            ]
+        ]
+    ];
+    
+    
+    try {
+        // 监听命令
+        $multipleWork = new MultipleWork();
+        $multipleWork->addWork(
+            (new Work($config['work1']['queueConfig']))->setProcessConfig($config['work1']['processConfig'])
+        );
+        $multipleWork->addWork(
+            (new Work($config['work2']['queueConfig']))->setProcessConfig($config['work2']['processConfig'])
+        );
+        $multiple = MultipleWorkDaemon::getInstance();
+        $multiple->setMultipleWork($multipleWork)->listenCommand();
+    
+    } catch (\ProcessManage\Exception\Exception $e) {
+    }
+    ```
+    
+    
 <br />
 
 ## 说明
@@ -197,7 +263,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             'currentConnect' => 'Redis',
      
             ######################### 日志配置 ###########################
-            'Log' = [
+            'Log' => [
                 'LogBaseRoot' => __DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'runtime'.DIRECTORY_SEPARATOR.'log', 
         
                 'Debug_FileNamePrefix' => '',
@@ -214,9 +280,8 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ],
      
             ######################### 守护进程配置 ###########################
-            Process = [
+            'Process' => [
                 'PidRoot' => '/tmp/queue_task/pid',
-                'TitlePrefix' => 'queue_task',
                 'StatusFileRoot' => '/tmp/queue_task/status',
             ],
         ]
@@ -244,14 +309,20 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
 	        - `attempt`：队列任务最大执行的次数(失败则重试，直到最大次数)，0为不限制（无限重试），默认：`10`
 	        - `memory`：允许使用的最大内存，单位:M，默认：`128`
 	        - `sleep`：每次检测的时间间隔(如果当前队列没有任务，则会等待该时长后再次尝试出队)，默认：`3`
-	        - `delay`：失败后延迟的秒数重新加入队列(任务失败后，会压入一个延迟任务，如果该值设置成0，则会压入一个及时队列)，默认：`0`
+	        - `delay`：失败后延迟的秒数重新加入队列(任务失败后，会压入一个延迟任务，如果该值设置成0，则会压入一个及时队列)，默认：`0`  
+	        - `maxRunTime`：最大执行时间，超出该时间则退出监听，0为不限制，默认：`0`。`注：此参数只在非守护进程模式有效`
 	        
+		
 	    2. 守护进程配置  
+	        进程基础配置  
+	        - `baseTitle`: 进程基础名称(不带前缀的部分)，默认为当前队列名称，推荐默认
+	        
 	        master进程
 	        - `checkWorkerInterval`：n秒检测一次工作进程数量，默认：`600`
-	        - `maxWorkerNum`：工作进程个数，默认：`2`
+	        - `maxWorkerNum`：工作进程个数，默认：`1`
 	        
 	        worker进程
 	        - `executeTimes`：任务的最大执行次数(到次数后退出进程，master进程重新启动)(0为不限制)，默认：`0`
-	        - `limitSeconds`：工作进程最大执行时长(秒)(到时间后退出进程，master进程重新启动)(0为不限制)，默认：`0`
+	        - `limitSeconds`：工作进程最大执行时长(秒)(到时间后退出进程，master进程重新启动)(0为不限制)，默认：`86400`
+	        - `executeUSleep`：每次工作任务中间睡眠时长(微秒)，默认：`0`
 

@@ -1,17 +1,17 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\MultipleWork;
+
 
 use ProcessManage\Command\Action\Action;
-use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\MultipleWorkDaemon;
 
 /**
- * stop 命令动作
- * Class Stop
- * @package QueueTask\Daemon\Command
+ * start 命令动作
+ * Class Start
+ * @package QueueTask\Daemon\Command\MultipleWork
  */
-class Stop extends Action
+class Start extends Action
 {
 
     /**
@@ -21,8 +21,11 @@ class Stop extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
-        (new Manage($daemon->getProcessConfig()))->stop();
+        $daemon = MultipleWorkDaemon::getInstance();
+        $multipleWork = $daemon->getMultipleWork();
+
+        $multipleWork->commandStart();
+
     }
 
     /**
@@ -31,7 +34,7 @@ class Stop extends Action
      */
     public static function getCommandStr()
     {
-        return 'stop';
+        return 'start';
     }
 
     /**
@@ -40,6 +43,6 @@ class Stop extends Action
      */
     public static function getCommandDescription()
     {
-        return 'stop process';
+        return 'start process';
     }
 }

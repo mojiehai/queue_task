@@ -1,16 +1,16 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\SingleWork;
 
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Process\Manage;
-use QueueTask\Daemon\Daemon;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 /**
  * start 命令动作
  * Class Start
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\SingleWork
  */
 class Start extends Action
 {
@@ -22,17 +22,12 @@ class Start extends Action
      */
     public function handler()
     {
-        $daemon = Daemon::getInstance();
+        $daemon = SingleWorkDaemon::getInstance();
 
-        $manage = new Manage($daemon->getProcessConfig());
+        $singleWork = $daemon->getSingleWork();
 
-        $manage->setWorkInit($daemon->getWorkInit())->setWork($daemon->getWork());
+        $singleWork->commandStart();
 
-        if ($this->getParam('runInBackground')) {
-            // 后台运行
-            $manage->setBackground();
-        }
-        $manage->start();
     }
 
     /**

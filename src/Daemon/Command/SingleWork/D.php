@@ -1,14 +1,16 @@
 <?php
 
-namespace QueueTask\Daemon\Command;
+namespace QueueTask\Daemon\Command\SingleWork;
 
 use ProcessManage\Command\Action\Action;
 use ProcessManage\Command\Options\Options;
+use ProcessManage\Exception\Exception;
+use QueueTask\Daemon\SingleWorkDaemon;
 
 /**
  * d 参数的动作
  * Class D
- * @package QueueTask\Daemon\Command
+ * @package QueueTask\Daemon\Command\SingleWork
  */
 class D extends Options
 {
@@ -37,10 +39,13 @@ class D extends Options
      * 后台运行程序(守护进程运行)
      *
      * @param Action $action
+     * @throws Exception
      * @return mixed
      */
     public function impactAction(Action $action)
     {
-        $action->setParam('runInBackground', true);
+        $daemon = SingleWorkDaemon::getInstance();
+        $singleWork = $daemon->getSingleWork();
+        $singleWork->background = true;
     }
 }

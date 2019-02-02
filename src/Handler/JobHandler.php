@@ -63,14 +63,23 @@ abstract class JobHandler
 
 
     /**
-     * 设置本次执行handler为失败
-     * @param string $message
-     * @param int $code
+     * 设置本次执行handler为失败(会重试到指定次数)
+     * @param string $message 错误信息
      * @throws TaskException
      */
-    public function throwOnceFailure($message = "", $code = 0)
+    public function throwOnceFailure($message = "")
     {
-        throw new TaskException($message, $code);
+        throw new TaskException($message, 0);
+    }
+
+    /**
+     * 设置本次执行handler为强制失败(不会重试)
+     * @param string $message 错误信息
+     * @throws TaskException
+     */
+    public function throwForceFailure($message = "")
+    {
+        throw new TaskException($message, TaskException::FORCE_FAILED);
     }
 
 } 

@@ -134,13 +134,13 @@ class Worker
                 //任务成功，触发回调
                 $job->success();
             } else {
-                // 执行失败,判断当前是否超出执行次数
-                if ($this->attempt > 0 && $job->getAttempts() >= $this->attempt) {
-                    // 给定最大重试次数限制，且超过最大限制，则任务失败，触发回调
-                    $job->failed();
-                } else {
-                    // 未给定最大重试次数限制，或者没有超过最大重试限制，则重新将任务放入队尾
+                // 是否需要重试该任务
+                if ($job->isRelease($this->attempt)) {
+                    // 需要重试，则重新将任务放入队尾
                     $job->release($this->queue, $queueName, $this->delay);
+                } else {
+                    // 不需要重试，则任务失败，触发回调
+                    $job->failed();
                 }
             }
         } else {

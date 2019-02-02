@@ -26,11 +26,15 @@ class Job
      */
     protected $param;
     /**
-     * @var boolean 是否执行成功
+     * @var bool 是否强制失败(强制失败不会重试)
+     */
+    protected $forceFailed = false;
+    /**
+     * @var boolean 当前是否执行成功
      */
     protected $isexec;
     /**
-     * @var int 已经执行次数
+     * @var int 当前已经执行次数
      */
     protected $attempts;
     /**
@@ -45,7 +49,7 @@ class Job
      */
     public function __construct(JobHandler $handler , $func , array $param)
     {
-        $this->checkid = $this->getCheckId();
+        $this->checkid = $this->generateCheckId();
 
         $this->handler = $handler;
         $this->func = $func;
@@ -58,7 +62,7 @@ class Job
      * 生成checkId
      * @return string
      */
-    protected function getCheckId()
+    public function generateCheckId()
     {
         return md5(uniqid(rand(0,9999).microtime(true),true));
     }
@@ -116,6 +120,11 @@ class Job
 
         }catch (TaskException $e){
 
+            if ($e->getCode() == TaskException::FORCE_FAILED) {
+                // 强制失败，不会重试
+                $this->forceFailed = true;
+            }
+
             $this -> isexec = false;
 
             $this->errorArr[] = $e->getMessage();
@@ -141,6 +150,30 @@ class Job
     public function getErrors()
     {
         return $this->errorArr;
+    }
+
+    /**
+     * 是否需要重试该任务
+     * @param int $maxAttempt
+     * @return bool
+     */
+    public function isRelease(int $maxAttempt)
+    {
+        if ($this->isExec()) {
+            // 执行成功不需要重试
+            return false;
+        } else {
+            if (
+                // 判断是否强制失败，如果强制失败，则任务不需要重试
+                ($this->forceFailed) ||
+                // 判断当前是否超出指定执行次数，如果超过最大限制，则任务不需要重试
+                ($maxAttempt > 0 && $this->getAttempts() >= $maxAttempt)
+            ) {
+                return false;
+            } else {
+                return true;
+            }
+        }
     }
 
     /**

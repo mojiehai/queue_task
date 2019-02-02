@@ -11,4 +11,9 @@ use ProcessManage\Exception\Exception;
 class TaskException extends Exception
 {
 
+    /**
+     * 强制任务失败，不重试
+     */
+    const FORCE_FAILED = 1;
+
 } 

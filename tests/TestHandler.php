@@ -35,6 +35,9 @@ class TestHandler extends JobHandler
 
     public function test($job,$data)
     {
+        \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');
+        //$this->throwOnceFailure('error');
+        $this->throwForceFailure('error');
         // 1/3几率成功
         if(rand(0,1) == 0) {
             $res = true;

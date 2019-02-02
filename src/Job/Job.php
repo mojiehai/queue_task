@@ -11,8 +11,7 @@ class Job
     /**
      * @var string 随机字符串(防止队列唯一)
      */
-    protected $checkid = '';
-
+    public $checkid = '';
 
     /**
      * @var JobHandler job handler
@@ -61,7 +60,7 @@ class Job
      */
     protected function getCheckId()
     {
-        return md5(uniqid(rand(0,9999),true));
+        return md5(uniqid(rand(0,9999).microtime(true),true));
     }
 
     /**

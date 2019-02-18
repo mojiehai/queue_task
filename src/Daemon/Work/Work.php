@@ -3,6 +3,7 @@
 namespace QueueTask\Daemon\Work;
 
 use ProcessManage\Process\Worker as ProcessWorker;
+use QueueTask\Config\QueueConfig;
 use QueueTask\Worker\Worker;
 use QueueTask\Queue\Queue;
 
@@ -100,9 +101,7 @@ class Work
             $this->processConfig['baseTitle'] = $this->queueName;
         }
         // 进程前缀不允许局部配置，只能通过全局加载配置
-        if (isset($this->processConfig['titlePrefix'])) {
-            unset($this->processConfig['titlePrefix']);
-        }
+        $this->processConfig['titlePrefix'] = QueueConfig::$Process['TitlePrefix'];
         ##################### 不允许修改的值 #####################
         return $this;
     }

@@ -282,6 +282,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             ######################### 守护进程配置 ###########################
             'Process' => [
                 'PidRoot' => '/tmp/queue_task/pid',
+                'TitlePrefix' => 'queue_task',
                 'StatusFileRoot' => '/tmp/queue_task/status',
             ],
         ]
@@ -300,7 +301,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
             - `ProcessLogDeLimiterRule`：进程日志文件分隔规则，默认按天
         - `Process`：守护进程配置模块
             - `PidRoot`：进程pid文件的根目录
-            - `TitlePrefix`：进程名称前缀
+            - `TitlePrefix`：进程名称前缀(注：一个应用一个前缀，防止一个节点多个应用互相冲突)
             - `StatusFileRoot`：进程状态文件的根目录
 			
 	2. 局部配置，当前进程所需要的配置
@@ -315,7 +316,7 @@ $r = $queue->laterOn(5,new TestHandler(),'test',['test'=>'test'],'queue_name_1')
 		
 	    2. 守护进程配置  
 	        进程基础配置  
-	        - `baseTitle`: 进程基础名称(不带前缀的部分)，默认为当前队列名称，推荐默认
+	        - `baseTitle`: 进程基础名称(不带前缀的部分)，配置为空字符串时，值为当前队列名称，推荐配置成空字符串
 	        
 	        master进程
 	        - `checkWorkerInterval`：n秒检测一次工作进程数量，默认：`600`

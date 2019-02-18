@@ -99,8 +99,10 @@ class Work
             // 如果为空，队列基础名称修改成队列名
             $this->processConfig['baseTitle'] = $this->queueName;
         }
-        // 进程前缀
-        $this->processConfig['titlePrefix'] = 'queue_task';
+        // 进程前缀不允许局部配置，只能通过全局加载配置
+        if (isset($this->processConfig['titlePrefix'])) {
+            unset($this->processConfig['titlePrefix']);
+        }
         ##################### 不允许修改的值 #####################
         return $this;
     }

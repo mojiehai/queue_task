@@ -25,5 +25,5 @@ return [
         ],
     ],
 
-    'currentConnect' => 'MySql',
+    'currentConnect' => 'Redis',
 ];

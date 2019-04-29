@@ -13,7 +13,8 @@
         "mojiehai/process_manage" : "~1.0",
         "php": ">=7.0",
         "ext-mysqli": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-redis": "*"
     },
     "autoload": {
         "psr-4": {"QueueTask\\": "./src/"}

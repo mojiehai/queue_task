@@ -14,7 +14,7 @@ use QueueTask\Log\WorkLog;
  * 队列实体
  * Class Queue
  */
-class Queue implements QueueInterface
+class Queue
 {
 
     /**

@@ -11,7 +11,17 @@ use ProcessManage\Exception\Exception;
  */
 abstract class Connection
 {
+    /**
+     * config
+     * @var array
+     */
     protected $config = [];
+
+    /**
+     * singleton
+     * @var Connection
+     */
+    protected static $instance = null;
 
     /**
      * Connection constructor.
@@ -60,7 +70,7 @@ abstract class Connection
 
 
     /**
-     * 弹出队头任务(先删除后返回该任务)
+     * 弹出队头任务(先删除后返回该任务)(blocking)
      * @param $queueName
      * @return Job|null
      */

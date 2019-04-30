@@ -37,8 +37,11 @@ class FileLock
      * FileLock constructor.
      * @param int $type 阻塞模式
      */
-    public function __construct(int $type = self::BLOCK)
+    public function __construct(int $type = null)
     {
+        if (empty($type)) {
+            $type = self::BLOCK;
+        }
         $this->type = $type;
         $this->resource = fopen($this->fileLockPath, 'w+');
     }

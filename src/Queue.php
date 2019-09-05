@@ -1,14 +1,14 @@
 <?php
 
-namespace QueueTask\Queue;
+namespace QueueTask;
 
 use QueueTask\Config\QueueConfig;
 use QueueTask\Connection\Connection;
 use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
 use QueueTask\Connection\ConnectionFactory;
-use ProcessManage\Exception\Exception;
 use QueueTask\Log\WorkLog;
+use QueueTask\Exception\Exception;
 
 /**
  * 队列实体
@@ -63,20 +63,28 @@ class Queue
             try {
                 static::$instances[$connectName] = new static(ConnectionFactory::getInstance($connectName));
             } catch (Exception $e) {
-                WorkLog::error($e->getExceptionAsString());
+                WorkLog::error($e->getMessage());
             }
         }
         return static::$instances[$connectName];
     }
 
     /**
-     * 弹出队列(弹出后队列中就没有这个任务了)
-     * @param String $queueName 队列名称
-     * @return Job
+     * 设置处理程序
+     * @param \Closure $handler
      */
-    public function pop($queueName)
+    public function setHandler(\Closure $handler)
     {
-        return $this->connection->pop($queueName);
+        $this->connection->setHandler($handler);
+    }
+
+    /**
+     * 执行pop出来的任务(阻塞方法)
+     * @param string $queueName
+     */
+    public function popRun($queueName)
+    {
+        $this->connection->popRun($queueName);
     }
 
     /**
@@ -97,7 +105,7 @@ class Queue
      * @param string $queueName 队列名
      * @return boolean
      */
-    public function laterPush($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
         if ($delay <= 0) {
             return $this->push($job, $queueName);
@@ -132,7 +140,7 @@ class Queue
     public function laterOn($delay, JobHandler $handler, $func, array $param, $queueName)
     {
         $job = new Job($handler, $func, $param);
-        return $this->laterPush($delay,$job, $queueName);
+        return $this->later($delay,$job, $queueName);
     }
 
 

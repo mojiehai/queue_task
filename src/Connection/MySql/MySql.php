@@ -90,12 +90,12 @@ class MySql extends Connection
     }
 
     /**
-     * 弹出队头任务(先删除后返回该任务)
-     * @param $queueName
-     * @return Job
-     * @throws Exception
+     * 弹出队头任务(先删除后返回该任务)(blocking)
+     * @param string $queueName 队列名称
+     * @param array & $extends 额外需要传递给ack方法的参数
+     * @return Job|null
      */
-    public function pop($queueName)
+    public function pop($queueName, & $extends = [])
     {
         try {
             $job = null;

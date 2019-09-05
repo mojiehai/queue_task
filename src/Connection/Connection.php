@@ -24,11 +24,26 @@ abstract class Connection
     protected static $instance = null;
 
     /**
+     * 处理程序
+     * @var \Closure
+     */
+    protected $handler = null;
+
+    /**
      * Connection constructor.
      * @param array $config 配置参数
      */
     protected function __construct(array $config = []){
         $this->config = $config;
+    }
+
+    /**
+     * 设置处理程序
+     * @param \Closure $handler
+     */
+    public function setHandler(\Closure $handler)
+    {
+        $this->handler = $handler;
     }
 
     /**
@@ -68,14 +83,38 @@ abstract class Connection
      */
     abstract public function close();
 
+    /**
+     * 执行pop出来的任务(阻塞方法)
+     * @param string $queueName
+     */
+    public function popRun($queueName)
+    {
+        $extends = [];
+        $job = $this->pop($queueName, $extends);
+        if ($job instanceof Job) {
+            // 执行任务
+            $handler = $this->handler;
+            $handler($job, $queueName);
+
+            // 确认任务
+            $this->ack($queueName, $extends);
+        }
+    }
 
     /**
      * 弹出队头任务(先删除后返回该任务)(blocking)
-     * @param $queueName
+     * @param string $queueName 队列名称
+     * @param array & $extends 额外需要传递给ack方法的参数
      * @return Job|null
      */
-    abstract public function pop($queueName);
+    abstract public function pop($queueName, & $extends = []);
 
+    /**
+     * 确认任务
+     * @param string $queueName
+     * @param array $extends
+     */
+    abstract public function ack($queueName, $extends);
 
     /**
      * 压入队列
@@ -93,6 +132,6 @@ abstract class Connection
      * @param String $queueName 队列名
      * @return boolean
      */
-    abstract public function laterOn($delay , Job $job, $queueName);
+    abstract public function later($delay , Job $job, $queueName);
 
 } 

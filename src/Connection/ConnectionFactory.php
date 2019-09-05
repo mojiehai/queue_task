@@ -4,7 +4,7 @@ namespace QueueTask\Connection;
 
 
 use QueueTask\Config\QueueConfig;
-use ProcessManage\Exception\Exception;
+use QueueTask\Exception\Exception;
 
 /**
  * Class ConnectionFactory

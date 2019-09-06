@@ -14,7 +14,8 @@
         "php": ">=7.0",
         "ext-mysqli": "*",
         "ext-json": "*",
-        "ext-redis": "*"
+        "ext-redis": "*",
+        "ext-posix": "*"
     },
     "autoload": {
         "psr-4": {"QueueTask\\": "./src/"}

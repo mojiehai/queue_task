@@ -1,7 +1,8 @@
 <?php
 
 namespace QueueTask\Connection;
-use QueueTask\Job\Job;
+
+use QueueTask\Job;
 use ProcessManage\Exception\Exception;
 
 /**
@@ -24,6 +25,12 @@ abstract class Connection
     protected static $instance = null;
 
     /**
+     * pop阻塞超时时长
+     * @var int
+     */
+    protected $popTimeOut = 3;
+
+    /**
      * 处理程序
      * @var \Closure
      */
@@ -35,6 +42,9 @@ abstract class Connection
      */
     protected function __construct(array $config = []){
         $this->config = $config;
+        if (isset($config['POP_TIME_OUT']) && $config['POP_TIME_OUT'] > 0) {
+            $this->popTimeOut = $config['POP_TIME_OUT'];
+        }
     }
 
     /**

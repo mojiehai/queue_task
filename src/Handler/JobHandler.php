@@ -3,7 +3,7 @@
 namespace QueueTask\Handler;
 
 use QueueTask\Exception\TaskException;
-use QueueTask\Job\Job;
+use QueueTask\Job;
 
 
 /**
@@ -20,7 +20,7 @@ abstract class JobHandler
      * @param array $data     参数
      * @return void
      */
-    public function handler($job, $func, $data)
+    public function handler(Job $job, $func, $data)
     {
         try {
             if (method_exists($this, $func)) {
@@ -41,7 +41,7 @@ abstract class JobHandler
      * @param array $data 参数
      * @return mixed
      */
-    abstract public function failed($job, $func, $data);
+    abstract public function failed(Job $job, $func, $data);
 
 
     /**
@@ -51,7 +51,7 @@ abstract class JobHandler
      * @param array $data 参数
      * @return mixed
      */
-    abstract public function success($job, $func, $data);
+    abstract public function success(Job $job, $func, $data);
 
 
     /**

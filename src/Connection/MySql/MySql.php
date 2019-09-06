@@ -3,11 +3,10 @@
 namespace QueueTask\Connection\MySql;
 
 use QueueTask\Connection\Connection;
-use QueueTask\Exception\DBException;
-use ProcessManage\Exception\Exception;
+use QueueTask\Exception\Exception;
 use QueueTask\Helpers\Lock\FileLock;
-use QueueTask\Job\Job;
-use QueueTask\Log\WorkLog;
+use QueueTask\Helpers\Log;
+use QueueTask\Job;
 
 /**
  * MySql 操作任务类
@@ -28,9 +27,6 @@ class MySql extends Connection
     //单例对象
     protected static $instance = null;
 
-    //是否初始化head
-    protected $isInitHead = false;
-
     //最后一个sql
     protected $lastSql = '';
 
@@ -38,7 +34,6 @@ class MySql extends Connection
      * 配置参数
      * MySql constructor.
      * @param array $config
-     * @throws DBException
      */
     protected function __construct(array $config = [])
     {
@@ -47,32 +42,35 @@ class MySql extends Connection
             static::$TABLE_NAME = $config['DB_TABLE'];
         }
         if (empty(static::$TABLE_NAME)) {
-            throw new DBException("MySql Init Error: config 'DB_TABLE' is empty");
+            Log::error("MySql Init Error: config 'DB_TABLE' is empty");
         }
         if (isset($config['DB_TABLE_DELAY']) && !empty($config['DB_TABLE_DELAY'])) {
             static::$DELAY_TABLE_NAME = $config['DB_TABLE_DELAY'];
         }
         if (empty(static::$DELAY_TABLE_NAME)) {
-            throw new DBException("MySql Init Error: config 'DB_TABLE_DELAY' is empty");
+            Log::error("MySql Init Error: config 'DB_TABLE_DELAY' is empty");
         }
     }
 
     /**
      * 初始化连接
-     * @throws DBException
+     * @param bool $force 是否强制
+     * @return bool
      */
-    private function open()
+    private function open($force = false)
     {
-        if(self::$connect != null) {
-            return;
+        if(!$force && self::$connect != null) {
+            return true;
         }
         $config = $this->config;
         // 初始化mysql连接
         self::$connect = @mysqli_connect($config['DB_HOST'],$config['DB_USERNAME'],$config['DB_PASSWORD'],$config['DB_DATABASE'],$config['DB_PORT']);
         if(!self::$connect) {
-            throw new DBException("MySql Connection Error:".mysqli_connect_error(),mysqli_connect_errno());
+            Log::error("MySql Connection Error:".mysqli_connect_error(),mysqli_connect_errno());
+            return false;
         }
         mysqli_set_charset(self::$connect,$config['DB_CHARSET']);
+        return true;
     }
 
 
@@ -83,7 +81,7 @@ class MySql extends Connection
     public function close()
     {
         if(self::$connect != null) {
-            return mysqli_close(self::$connect);
+            return @mysqli_close(self::$connect);
         } else {
             return true;
         }
@@ -97,8 +95,8 @@ class MySql extends Connection
      */
     public function pop($queueName, & $extends = [])
     {
+        $job = null;
         try {
-            $job = null;
 
             $lockObj = new FileLock;
 
@@ -113,7 +111,7 @@ class MySql extends Connection
                 $sql = 'SELECT `id`,`job` FROM `' . static::$TABLE_NAME . '` WHERE `queueName` = "' . $queueName . '" ORDER BY `id` LIMIT 1 FOR UPDATE';
                 $res = $this->executeSql($sql);
                 if (!($res instanceof \mysqli_result)) {
-                    throw new DBException("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                    throw new Exception("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
                 }
 
                 $result = mysqli_fetch_assoc($res);
@@ -121,7 +119,7 @@ class MySql extends Connection
                 if ($result) {
                     // 任务节点，提取该任务，并删除该任务
                     if (!($this->delete(['id' => $result['id']], static::$TABLE_NAME))) {
-                        throw new DBException("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                        throw new Exception("MySql Error:" . mysqli_error(self::$connect), mysqli_errno(self::$connect));
                     }
                     $job = Job::Decode($result['job']);
                 }
@@ -131,12 +129,27 @@ class MySql extends Connection
                 $lockObj->unlock();
             }
 
-            return $job;
-
         } catch (Exception $e) {
             $this->rollback();
-            throw $e;
+            Log::error($e->getMessage());
+
+        } finally {
+            // job 为空的话，手动给阻塞
+            if (is_null($job)) {
+                sleep($this->popTimeOut);
+            }
+
+            return $job;
         }
+    }
+
+    /**
+     * 确认任务
+     * @param string $queueName
+     * @param array $extends
+     */
+    public function ack($queueName, $extends)
+    {
     }
 
     /**
@@ -144,7 +157,6 @@ class MySql extends Connection
      * @param Job $job
      * @param string $queueName 队列名称
      * @return bool
-     * @throws DBException
      */
     public function push(Job $job, $queueName)
     {
@@ -157,13 +169,15 @@ class MySql extends Connection
                 'job' => $jobStr,
             ], static::$TABLE_NAME);
             if (!$res) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
+                throw new Exception("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
             }
             $this->commit();
+
             return true;
         } catch (Exception $e) {
             $this->rollback();
-            WorkLog::error('push Error: '. $e->getMessage());
+            Log::error('push Error: '. $e->getMessage());
+
             return false;
         }
     }
@@ -174,9 +188,8 @@ class MySql extends Connection
      * @param Job $job 任务
      * @param string $queueName 队列名称
      * @return bool
-     * @throws DBException
      */
-    public function laterOn($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
         $timestamp = time();
         $wantExecTime = date('Y-m-d H:i:s',$timestamp + $delay);
@@ -190,13 +203,13 @@ class MySql extends Connection
                 'wantExecTime' => $wantExecTime,
             ], static::$DELAY_TABLE_NAME);
             if (!$res) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
+                throw new Exception("MySql Error:".mysqli_error(self::$connect),mysqli_errno(self::$connect));
             }
             $this->commit();
             return true;
         } catch (Exception $e) {
             $this->rollback();
-            WorkLog::error('laterOn Error: '. $e->getMessage());
+            Log::error('laterOn Error: '. $e->getMessage());
             return false;
         }
     }
@@ -205,8 +218,7 @@ class MySql extends Connection
     /**
      * 合并等待执行的任务
      * @param  string $queueName
-     * @return void
-     * @throws DBException
+     * @return bool
      */
     protected function migrateAllExpiredJobs($queueName)
     {
@@ -214,7 +226,8 @@ class MySql extends Connection
         $delaySql = 'SELECT `id`,`job`,`queueName` FROM `'.static::$DELAY_TABLE_NAME.'` WHERE `queueName` = "'.$queueName.'" AND `wantExecTime` <= "'.$date.'" ORDER BY `wantExecTime`,`id` FOR UPDATE';
         $delayRes = $this->executeSql($delaySql);
         if (!($delayRes instanceof \mysqli_result)) {
-            throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+            Log::error("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+            return false;
         }
         $delayData = mysqli_fetch_all($delayRes, MYSQLI_ASSOC);
 
@@ -226,41 +239,40 @@ class MySql extends Connection
                 $insertData[] = ['job' => $delay['job'], 'queueName' => $delay['queueName']];
             }
             if (!($this->delete(['id' => ['in', $ids]], static::$DELAY_TABLE_NAME))) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                Log::error("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                return false;
             }
             if (!$this->insertAll($insertData, static::$TABLE_NAME)) {
-                throw new DBException("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                Log::error("MySql Error:".mysqli_error(self::$connect), mysqli_errno(self::$connect));
+                return false;
             }
         }
-
+        return true;
     }
 
 
     /**
      * 开启事务
-     * @throws DBException
      */
     protected function begin()
     {
-        $this->executeSql('begin');
+        return $this->executeSql('begin');
     }
 
     /**
      * 回滚事务
-     * @throws DBException
      */
     protected function rollback()
     {
-        $this->executeSql('rollback');
+        return $this->executeSql('rollback');
     }
 
     /**
      * 提交事务
-     * @throws DBException
      */
     protected function commit()
     {
-        $this->executeSql('commit');
+        return $this->executeSql('commit');
     }
 
     /**
@@ -268,7 +280,6 @@ class MySql extends Connection
      * @param array $data 数据数组
      * @param string $table 表名
      * @return bool
-     * @throws DBException
      */
     protected function insert(array $data, $table = '')
     {
@@ -294,7 +305,6 @@ class MySql extends Connection
      * @param array $dataSet 多条数据的数组
      * @param string $table 表名
      * @return bool
-     * @throws DBException
      */
     public function insertAll(array $dataSet, $table = '')
     {
@@ -320,7 +330,6 @@ class MySql extends Connection
      * @param array $where
      * @param string $table 表名
      * @return bool
-     * @throws DBException
      */
     protected function delete(array $where, $table = '')
     {
@@ -351,13 +360,15 @@ class MySql extends Connection
      * 执行sql
      * @param $sql
      * @return bool|\mysqli_result
-     * @throws DBException
      */
     protected function executeSql($sql)
     {
-        $this->open();
-        $this->lastSql = $sql;
-        return mysqli_query(self::$connect,$sql);
+        if ($this->open()) {
+            $this->lastSql = $sql;
+            return mysqli_query(self::$connect,$sql);
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -368,5 +379,6 @@ class MySql extends Connection
     {
         return $this->lastSql;
     }
+
 
 }

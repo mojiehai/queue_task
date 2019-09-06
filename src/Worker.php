@@ -1,11 +1,9 @@
 <?php
 
-namespace QueueTask\Worker;
+namespace QueueTask;
 
 use QueueTask\Helpers\LoadConfig;
-use QueueTask\Log\WorkLog;
-use QueueTask\Queue;
-use QueueTask\Job\Job;
+use QueueTask\Helpers\Log;
 
 /**
  * 工作类
@@ -52,17 +50,12 @@ class Worker
     public $maxRunTime = 0;
 
     /**
-     * 允许配置的变量名
-     * @var array
-     */
-    protected $configNameList = ['queueName', 'attempt', 'memory', 'maxRunTime'];
-
-    /**
      * Worker constructor.
      * @param Queue $queue 队列实例
      */
     public function __construct(Queue $queue)
     {
+        $this->configNameList = ['queueName', 'attempt', 'memory', 'maxRunTime'];
         $this->queue = $queue;
     }
 
@@ -95,11 +88,14 @@ class Worker
         $endTime = time() + $this->maxRunTime;
         while (true) {
 
-            //消费一次队列任务
-            $this->runOnce();
+            // 消费一次队列任务
+            $this->queue->popRun($this->queueName);
 
             // 检查最大执行时间
             $this->checkMaxRunTime($endTime);
+
+            // 检查内存超出
+            $this->checkMemoryExceeded();
 
             // 退出监听
             if ($this->isStop()) {
@@ -109,38 +105,12 @@ class Worker
     }
 
     /**
-     * 消费一次队列任务
-     */
-    public function runOnce()
-    {
-        $job = null;
-
-        $this->queue->popRun($this->queueName);
-
-        // 内存超出
-        if ($this->memoryExceeded()) {
-            WorkLog::error('Memory out of range');
-            $this->setStop();
-        }
-    }
-
-
-    /**
      * 是否需要退出
      * @return bool
      */
     public function isStop()
     {
         return $this->isStop;
-    }
-
-    /**
-     * 判断内存使用是否超出
-     * @return bool
-     */
-    protected function memoryExceeded()
-    {
-        return (memory_get_usage() / 1024 / 1024) >= $this->memory;
     }
 
     /**
@@ -158,6 +128,17 @@ class Worker
     {
         $this->close();
         $this->isStop = true;
+    }
+
+    /**
+     * 判断内存使用是否超出
+     */
+    protected function checkMemoryExceeded()
+    {
+        if ((memory_get_usage() / 1024 / 1024) >= $this->memory) {
+            Log::error('Memory out of range');
+            $this->setStop();
+        }
     }
 
     /**

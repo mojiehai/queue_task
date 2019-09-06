@@ -3,7 +3,8 @@
 namespace Tests;
 
 use QueueTask\Handler\JobHandler;
-use QueueTask\Job\Job;
+use QueueTask\Helpers\Log;
+use QueueTask\Job;
 
 class TestHandler extends JobHandler
 {
@@ -15,9 +16,9 @@ class TestHandler extends JobHandler
      * @param array $data     参数
      * @return mixed
      */
-    public function failed($job, $func, $data)
+    public function failed(Job $job, $func, $data)
     {
-        \QueueTask\Log\WorkLog::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
+        Log::info('failed run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
     }
 
     /**
@@ -27,25 +28,20 @@ class TestHandler extends JobHandler
      * @param array $data     参数
      * @return mixed
      */
-    public function success($job, $func, $data)
+    public function success(Job $job, $func, $data)
     {
-        \QueueTask\Log\WorkLog::info('success run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
+        Log::info('success run handler -- func: '.$func.' -- params: '.json_encode($data).',error:'.json_encode($job->getErrors()));
     }
 
 
-    public function test($job,$data)
+    public function test(Job $job,$data)
     {
-        \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');
-        //$this->throwOnceFailure('error');
-        $this->throwForceFailure('error');
-        // 1/3几率成功
+        // 1/2几率成功
         if(rand(0,1) == 0) {
-            $res = true;
-            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : true');
+            Log::info('run handler -- func: test -- params: '.json_encode($data). '; result : true');
         } else {
-            $res = false;
-            \QueueTask\Log\WorkLog::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');
-            $this->throwOnceFailure('error ');
+            Log::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');
+            $job->setOnceFailure('error info , times:'.$job->getAttempts());
         }
     }
 

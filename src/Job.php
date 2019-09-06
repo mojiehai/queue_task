@@ -1,10 +1,8 @@
 <?php
 
-namespace QueueTask\Job;
+namespace QueueTask;
 
-use QueueTask\Exception\TaskException;
 use QueueTask\Handler\JobHandler;
-use QueueTask\Queue;
 
 class Job
 {

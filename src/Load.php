@@ -1,10 +1,9 @@
 <?php
 
-namespace QueueTask\Load;
+namespace QueueTask;
 
-use ProcessManage\Config\LogConfig;
-use ProcessManage\Config\ProcessConfig;
-use QueueTask\Config\QueueConfig;
+use QueueTask\Connection\ConnectionFactory;
+use QueueTask\Helpers\Log;
 
 /**
  * 启动加载模块类(类似于session_start())
@@ -20,9 +19,20 @@ class Load
      */
     public static function Queue(array $config)
     {
-        QueueConfig::LoadConfig($config);
-        LogConfig::LoadConfig(QueueConfig::$Log);
-        ProcessConfig::LoadConfig(QueueConfig::$Process);
+        // 加载log
+        if (isset($config['log'])) {
+            Log::getInstance()->setConfig($config['log']);
+        }
+
+        // 加载链接列表
+        if (isset($config['connectList'])) {
+            ConnectionFactory::$connectList = $config['connectList'];
+        }
+
+        // 加载当前链接
+        if (isset($config['currentConnect'])) {
+            ConnectionFactory::$currentConnect = $config['currentConnect'];
+        }
     }
 
 }

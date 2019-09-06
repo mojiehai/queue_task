@@ -2,12 +2,9 @@
 
 namespace QueueTask;
 
-use QueueTask\Config\QueueConfig;
 use QueueTask\Connection\Connection;
-use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
 use QueueTask\Connection\ConnectionFactory;
-use QueueTask\Log\WorkLog;
 use QueueTask\Exception\Exception;
 
 /**
@@ -52,18 +49,19 @@ class Queue
 
     /**
      * @param string $connectName 链接类型(默认走配置)
-     * @return Queue
+     * @return Queue|null
      */
     public static function getInstance($connectName = '')
     {
         if (empty($connectName)) {
-            $connectName = QueueConfig::$currentConnect;
+            $connectName = ConnectionFactory::$currentConnect;
         }
         if (!isset(static::$instances[$connectName]) || !(static::$instances[$connectName] instanceof Queue)) {
-            try {
-                static::$instances[$connectName] = new static(ConnectionFactory::getInstance($connectName));
-            } catch (Exception $e) {
-                WorkLog::error($e->getMessage());
+            $connect = ConnectionFactory::getInstance($connectName);
+            if ($connect) {
+                static::$instances[$connectName] = new static($connect);
+            } else {
+                return null;
             }
         }
         return static::$instances[$connectName];
@@ -110,7 +108,7 @@ class Queue
         if ($delay <= 0) {
             return $this->push($job, $queueName);
         } else {
-            return $this->connection->laterOn($delay, $job, $queueName);
+            return $this->connection->later($delay, $job, $queueName);
         }
     }
 

@@ -42,8 +42,8 @@ abstract class Connection
      */
     protected function __construct(array $config = []){
         $this->config = $config;
-        if (isset($config['POP_TIME_OUT']) && $config['POP_TIME_OUT'] > 0) {
-            $this->popTimeOut = $config['POP_TIME_OUT'];
+        if (isset($config['popTimeout']) && $config['popTimeout'] > 0) {
+            $this->popTimeOut = $config['popTimeout'];
         }
     }
 
@@ -103,16 +103,27 @@ abstract class Connection
         $job = $this->pop($queueName, $extends);
         if ($job instanceof Job) {
             // 执行任务
-            $handler = $this->handler;
-            $handler($job, $queueName);
+            $this->runJob($job, $queueName);
 
             // 确认任务
-            $this->ack($queueName, $extends);
+            $this->ack($queueName, $job, $extends);
         }
     }
 
     /**
-     * 弹出队头任务(先删除后返回该任务)(blocking)
+     * 执行任务
+     * @param Job $job
+     * @param $queueName
+     */
+    protected function runJob(Job $job, $queueName)
+    {
+        // 执行任务
+        $handler = $this->handler;
+        $handler($job, $queueName);
+    }
+
+    /**
+     * 弹出队头任务(blocking)
      * @param string $queueName 队列名称
      * @param array & $extends 额外需要传递给ack方法的参数
      * @return Job|null
@@ -122,9 +133,10 @@ abstract class Connection
     /**
      * 确认任务
      * @param string $queueName
+     * @param Job $job
      * @param array $extends
      */
-    abstract public function ack($queueName, $extends);
+    abstract public function ack($queueName, Job $job = null, $extends = []);
 
     /**
      * 压入队列
@@ -142,6 +154,6 @@ abstract class Connection
      * @param String $queueName 队列名
      * @return boolean
      */
-    abstract public function later($delay , Job $job, $queueName);
+    abstract public function later($delay, Job $job, $queueName);
 
 } 

@@ -6,7 +6,7 @@ use Tests\TestHandler;
 use QueueTask\Load;
 use QueueTask\Queue;
 
-$config = include './config.php';
+$config = include __DIR__.'/config.php';
 
 Load::Queue($config);
 
@@ -16,6 +16,6 @@ $r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue');
 //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue1');
 //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue2');
 //$r = $res->pushOn(new TestHandler(),'test',['test'=>'test'],'testQueue3');
-$r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'testQueue');
+//$r = $res->laterOn(5,new TestHandler(),'test',['test'=>'test'],'testQueue');
 echo date("Y-m-d H:i:s",time());
 var_dump($r);die;

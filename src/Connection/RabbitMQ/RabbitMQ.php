@@ -1,13 +1,12 @@
 <?php
 
-namespace app\common\queue\connect\rabbit_mq;
+namespace QueueTask\Connection\RabbitMQ;
 
-use core\log\Log;
+use QueueTask\Helpers\Log;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 use QueueTask\Connection\Connection;
-use QueueTask\Job\Job;
-use QueueTask\Exception\DBException;
+use QueueTask\Job;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
@@ -15,8 +14,6 @@ use PhpAmqpLib\Exception\AMQPTimeoutException;
 /**
  * RabbitMQ链接驱动
  * Class RabbitMQ
- * @package app\common\queue\connect\rabbit_mq
- * @author pengshuhai
  */
 class RabbitMQ extends Connection
 {
@@ -42,13 +39,13 @@ class RabbitMQ extends Connection
      * 主机ip或名称
      * @var string
      */
-    protected $host = '';
+    protected $host = '127.0.0.1';
 
     /**
      * 端口号
-     * @var string
+     * @var int
      */
-    protected $port = '';
+    protected $port = 5672;
 
     /**
      * 用户名
@@ -101,52 +98,33 @@ class RabbitMQ extends Connection
     /**
      * RabbitMQ constructor.
      * @param array $config
-     * @throws DBException
      */
     protected function __construct(array $config = [])
     {
         parent::__construct($config);
-        if (isset($config['HOST']) && !empty($config['HOST'])) {
-            $this->host = $config['HOST'];
+        if (isset($config['host']) && !empty($config['host'])) {
+            $this->host = $config['host'];
         }
-        if (isset($config['PORT']) && !empty($config['PORT'])) {
-            $this->port = $config['PORT'];
+        if (isset($config['port']) && !empty($config['port'])) {
+            $this->port = $config['port'];
         }
-        if (isset($config['USERNAME']) && !empty($config['USERNAME'])) {
-            $this->userName = $config['USERNAME'];
+        if (isset($config['username']) && !empty($config['username'])) {
+            $this->userName = $config['username'];
         }
-        if (isset($config['PASSWORD']) && !empty($config['PASSWORD'])) {
-            $this->password = $config['PASSWORD'];
+        if (isset($config['password']) && !empty($config['password'])) {
+            $this->password = $config['password'];
         }
-        if (isset($config['VHOST']) && !empty($config['VHOST'])) {
-            $this->vhost = $config['VHOST'];
+        if (isset($config['vhost']) && !empty($config['vhost'])) {
+            $this->vhost = $config['vhost'];
         }
-        if (isset($config['EX_CHANGES']) && !empty($config['EX_CHANGES'])) {
-            $this->exChanges = $config['EX_CHANGES'];
+        if (isset($config['exChanges']) && !empty($config['exChanges'])) {
+            $this->exChanges = $config['exChanges'];
         }
 
-        if (empty($this->host)) {
-            throw new DBException("RabbitMQ Init Error: config 'HOST' is empty");
-        }
-        if (empty($this->port)) {
-            throw new DBException("RabbitMQ Init Error: config 'PORT' is empty");
-        }
-        if (empty($this->userName)) {
-            throw new DBException("RabbitMQ Init Error: config 'USERNAME' is empty");
-        }
-        if (empty($this->password)) {
-            throw new DBException("RabbitMQ Init Error: config 'PASSWORD' is empty");
-        }
-        if (empty($this->vhost)) {
-            throw new DBException("RabbitMQ Init Error: config 'VHOST' is empty");
-        }
-        if (empty($this->exChanges)) {
-            throw new DBException("RabbitMQ Init Error: config 'EX_CHANGES' is empty");
-        }
     }
 
     /**
-     * 惰性链接
+     * 链接
      */
     private function open()
     {
@@ -165,11 +143,15 @@ class RabbitMQ extends Connection
      */
     public function close()
     {
-        if (!empty($this->channel)) {
-            $this->channel->close();
-        }
-        if (!empty($this->connect)) {
-            $this->connect->close();
+        try {
+            if (!empty($this->channel)) {
+                $this->channel->close();
+            }
+            if (!empty($this->connect)) {
+                $this->connect->close();
+            }
+        } catch (\Exception $e) {
+            Log::error('RabbitMQ close failed, reason: ' . $e->getMessage());
         }
         return true;
     }
@@ -209,24 +191,28 @@ class RabbitMQ extends Connection
             $rabbitMq = $this;
 
             // 消费回调
-            $callback = function (AMQPMessage $message) use ($rabbitMq) {
-                // 消息内容
+            $callback = function (AMQPMessage $message) use ($rabbitMq, $queueName) {
+                // 任务
+                $job = null;
+
+                // 消息
                 $body = $message->getBody();
                 if (empty($body)) {
                     // 任务为空
-                    $rabbitMq->job = null;
-                    Log::error('RabbitMQ Pop Message Is Empty', 'rabbit_mq', 'pop');
+                    Log::warning('RabbitMQ Pop Message Is Empty');
                 } else {
                     // 解析成任务
-                    $rabbitMq->job = Job::Decode($body);
-                    if (!($rabbitMq->job instanceof Job)) {
+                    $job = Job::Decode($body);
+                    if ($job instanceof Job) {
+                        $rabbitMq->runJob($job, $queueName);
+                    } else {
                         // 消息没有解析成任务
-                        Log::error('RabbitMQ Pop Message Not Job, Message: '.$body, 'rabbit_mq', 'pop');
-                        $rabbitMq->job = null;
+                        Log::error('RabbitMQ Pop Message Not Job, Message: '.$body);
                     }
                 }
-                // 手动确认消息
-                $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
+
+                // 确认任务
+                $rabbitMq->ack($queueName, $job, ['message' => $message]);
             };
 
             // 在处理并确认前一个消息之前，不要向消费者发送新消息
@@ -242,32 +228,55 @@ class RabbitMQ extends Connection
     }
 
     /**
-     * 弹出队头任务(先删除后返回该任务)
-     * @param $queueName
-     * @return Job|null
+     * 确认任务
+     * @param string $queueName
+     * @param Job $job
+     * @param array $extends
      */
-    public function pop($queueName)
+    public function ack($queueName, Job $job = null, $extends = [])
+    {
+        /**
+         * @var AMQPMessage $message
+         */
+        $message = $extends['message'];
+
+        // 确认消息
+        $message->delivery_info['channel']->basic_ack($message->delivery_info['delivery_tag']);
+    }
+
+    /**
+     * 执行pop出来的任务(阻塞方法)
+     * @param string $queueName
+     */
+    public function popRun($queueName)
+    {
+        $this->pop($queueName);
+    }
+
+    /**
+     * 任务出队
+     * @param string $queueName
+     * @param array $extends
+     * @return Job|void|null
+     */
+    public function pop($queueName, & $extends = [])
     {
         // 初始化消费者
         $this->initConsumer($queueName);
-
         try {
 
-            //等待mq弹出数据,超时时间为0.01s
-            $this->channel->wait(null, false, 0.01);
+            //等待mq弹出数据,超时时间为popTimeOut
+            echo '['.date('Y-m-d H:i:s').']wait...'.PHP_EOL;
+            $this->channel->wait(null, false, $this->popTimeOut);
+            echo '['.date('Y-m-d H:i:s').']run ok'.PHP_EOL;
 
         } catch (\ErrorException $error) {
-            Log::error('RabbitMQ Pop Failed:'.$error->getMessage(), 'rabbit_mq', 'pop');
-            return null;
+            Log::error('RabbitMQ Pop Failed:'.$error->getMessage());
         } catch(AMQPRuntimeException $error) {
-            Log::error('RabbitMQ AMQPRuntimeException:'.$error->getMessage(), 'rabbit_mq', 'pop');
-            return null;
+            Log::error('RabbitMQ AMQPRuntimeException:'.$error->getMessage());
         } catch(AMQPTimeoutException $error) {
             // 超时,说明当前队列的消费者中没有任务
-            return null;
         }
-
-        return $this->job;
     }
 
     /**
@@ -293,22 +302,23 @@ class RabbitMQ extends Connection
 
         } catch (\Exception $e) {
             // 异常则压入出错
-            Log::fatal('RabbitMQ SendMessage Failed: '.$e, 'rabbit_mq', 'push');
+            Log::error('RabbitMQ SendMessage Failed: '.$e);
             return false;
         }
     }
 
     /**
      * 添加一条延迟任务
-     * @param int $delay 延迟的秒数
-     * @param Job $job 任务
-     * @param String $queueName 队列名
-     * @return boolean
+     * @param int $delay
+     * @param Job $job
+     * @param String $queueName
+     * @return bool
      */
-    public function laterOn($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
-        // 不支持延迟队列
-        Log::error('RabbitMQ Not Support Later Push,delay: '.$delay.',Job: '. Job::Encode($job), 'rabbit_mq', 'laterOn');
-        return $this->push($job, $queueName);
+        // mq不支持延迟队列
+        Log::error('RabbitMQ Not Support Later Push,delay: '.$delay.',Job: '. Job::Encode($job));
+        return false;
     }
+
 }

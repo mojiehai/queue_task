@@ -1,26 +1,20 @@
 <?php
 
-namespace app\common\queue\connect\mns;
-
-// 加载aliyun sdk
-require_once __DIR__.DIRECTORY_SEPARATOR.'ali_mns_sdk'.DIRECTORY_SEPARATOR.'mns-autoloader.php';
+namespace QueueTask\Connection\Mns;
 
 use AliyunMNS\Exception\MessageNotExistException;
 use AliyunMNS\Queue;
 use AliyunMNS\Responses\ReceiveMessageResponse;
-use core\log\Log;
 use QueueTask\Connection\Connection;
-use QueueTask\Exception\DBException;
-use QueueTask\Job\Job;
+use QueueTask\Job;
 use AliyunMNS\Client;
+use QueueTask\Helpers\Log;
 use AliyunMNS\Requests\SendMessageRequest;
 use AliyunMNS\Exception\MnsException;
 
 /**
  * mns链接驱动
  * Class Mns
- * @package app\common\queue\connect\mns
- * @author pengshuhai
  */
 class Mns extends Connection
 {
@@ -56,58 +50,43 @@ class Mns extends Connection
     protected $endpoint = '';
 
     /**
-     * 入队最大尝试次数(第一次不算重试)
+     * 入队最大尝试次数(发生错误会重试入队)
      * @var int
      */
-    private $pushMaxTryTimes = 5;
+    private $pushMaxTryTimes = 3;
 
     /**
-     * 删除消息最大尝试次数(第一次不算重试)
+     * 删除消息最大尝试次数(发生错误会重试删除)
      * @var int
      */
-    private $deleteMaxTryTimes = 5;
+    private $deleteMaxTryTimes = 3;
 
     /**
      * Mns constructor.
      * @param array $config
-     * @throws DBException
      */
     protected function __construct(array $config = [])
     {
         parent::__construct($config);
-        if (isset($config['AccessKeyID']) && !empty($config['AccessKeyID'])) {
-            $this->accessKeyID = $config['AccessKeyID'];
+        if (isset($config['accessKeyID']) && !empty($config['accessKeyID'])) {
+            $this->accessKeyID = $config['accessKeyID'];
         }
-        if (isset($config['AccessKeySecret']) && !empty($config['AccessKeySecret'])) {
-            $this->accessKeySecret = $config['AccessKeySecret'];
+        if (isset($config['accessKeySecret']) && !empty($config['accessKeySecret'])) {
+            $this->accessKeySecret = $config['accessKeySecret'];
         }
-        if (isset($config['Endpoint']) && !empty($config['Endpoint'])) {
-            $this->endpoint = $config['Endpoint'];
+        if (isset($config['endpoint']) && !empty($config['endpoint'])) {
+            $this->endpoint = $config['endpoint'];
         }
-        if (isset($config['PushMaxTryTimes'])) {
-            $this->pushMaxTryTimes = $config['PushMaxTryTimes'];
+        if (isset($config['pushMaxTryTimes'])) {
+            $this->pushMaxTryTimes = intval($config['pushMaxTryTimes']);
         }
-        if (isset($config['DeleteMaxTryTimes'])) {
-            $this->deleteMaxTryTimes = $config['DeleteMaxTryTimes'];
+        if (isset($config['deleteMaxTryTimes'])) {
+            $this->deleteMaxTryTimes = intval($config['deleteMaxTryTimes']);
         }
-
-
-        if (empty($this->accessKeyID)) {
-            throw new DBException("Mns Init Error: config 'AccessKeyID' is empty");
-        }
-        if (empty($this->accessKeySecret)) {
-            throw new DBException("Mns Init Error: config 'AccessKeySecret' is empty");
-        }
-        if (empty($this->endpoint)) {
-            throw new DBException("Mns Init Error: config 'Endpoint' is empty");
-        }
-
     }
 
     /**
      * 创建Mns实例
-     * @author PengShuHai<pengshuhai@jybdshop.cn>
-     * @date 2019/2/21 11:46:09
      */
     private function open()
     {
@@ -122,18 +101,17 @@ class Mns extends Connection
      */
     public function close()
     {
-        if (!empty(self::$client)) {
-            self::$client = null;
-        }
+        self::$client = null;
         return true;
     }
 
     /**
-     * 弹出队头任务(先删除后返回该任务)
-     * @param $queueName
+     * 弹出队头任务(blocking)
+     * @param string $queueName
+     * @param array $extends
      * @return Job|null
      */
-    public function pop($queueName)
+    public function pop($queueName, & $extends = [])
     {
         $this->open();
 
@@ -149,12 +127,29 @@ class Mns extends Connection
         // 消息内容
         $messageBody = $response->getMessageBody();
 
-        // 删除消息
-        $this->deleteMessage($queue, $response);
+        // 给ack动作传递参数
+        $extends = [
+            'queue' => $queue,
+            'response' => $response,
+        ];
 
         // 消息删除成功，生成Job返回
         return Job::Decode($messageBody);
+
     }
+
+    /**
+     * 确认任务
+     * @param string $queueName
+     * @param Job $job
+     * @param array $extends
+     */
+    public function ack($queueName, Job $job = null, $extends = [])
+    {
+        // 删除消息
+        $this->deleteMessage($extends['queue'], $extends['response']);
+    }
+
 
     /**
      * 获取消息响应对象
@@ -164,14 +159,13 @@ class Mns extends Connection
     private function receiveMessage(Queue $queue)
     {
         try {
-            // 获取消息，等待时长设置为0，不用http long polling，
-            // 如果使用http long polling，则该方法为阻塞方法，但是不想让此方法阻塞
-            return $queue->receiveMessage(0);
+            // 获取消息，参数为等待时长，设置为0就是立即返回，大于0该方法就为阻塞方法
+            return $queue->receiveMessage($this->popTimeOut);
         } catch (MessageNotExistException $e) {
             // 消息不存在，直接返回null
             return null;
         } catch (MnsException $e) {
-            Log::warning('Mns ReceiveMessage Failed: '.$e, 'mns', 'pop');
+            Log::warning('Mns ReceiveMessage Failed: '.$e);
             return null;
         }
     }
@@ -180,10 +174,10 @@ class Mns extends Connection
      * 删除消息
      * @param Queue $queue
      * @param ReceiveMessageResponse $response
-     * @param int $retry 当前重新尝试次数
+     * @param int $times 当前尝试的次数
      * @return bool
      */
-    private function deleteMessage(Queue $queue, ReceiveMessageResponse $response, $retry = 0)
+    private function deleteMessage(Queue $queue, ReceiveMessageResponse $response, $times = 1)
     {
         try {
             // 获取ReceiptHandle，这是一个有时效性的Handle，可以用来设置Message的各种属性和删除Message。
@@ -203,16 +197,14 @@ class Mns extends Connection
                 $isReTry = true;
             }
 
-            // 删除消息次数 = 重试次数+1
-            $times = $retry + 1;
-            if ($isReTry && $retry < $this->deleteMaxTryTimes) {
+            if ($isReTry && $times < $this->deleteMaxTryTimes) {
                 // 重试
-                Log::warning('Mns DeleteMessage Failed(times: '.$times.'): '.$e, 'mns', 'delete');
-                $retry ++;
-                return $this->deleteMessage($queue, $receiptHandle, $retry);
+                Log::warning('Mns DeleteMessage Failed(times: '.$times.'): '.$e);
+                $times ++;
+                return $this->deleteMessage($queue, $response, $times);
             } else {
                 // 不需要重试的或者重试完成还是报错的错误直接记录
-                Log::error('Mns DeleteMessage Failed(times: '.$times.',no longer try): '.$e, 'mns', 'delete');
+                Log::error('Mns DeleteMessage Failed(times: '.$times.',no longer try): '.$e);
                 return false;
             }
         }
@@ -226,8 +218,7 @@ class Mns extends Connection
      */
     public function push(Job $job, $queueName)
     {
-        // 在这里不设置强制延迟时间0s,根据aliyun控制台配置决定
-        return $this->pushMns($queueName, $job);
+        return $this->pushMns($queueName, $job, 0);
     }
 
     /**
@@ -237,7 +228,7 @@ class Mns extends Connection
      * @param String $queueName 队列名
      * @return boolean
      */
-    public function laterOn($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
         return $this->pushMns($queueName, $job, $delay);
     }
@@ -245,15 +236,13 @@ class Mns extends Connection
 
     /**
      * 推送消息到Mns
-     * @author PengShuHai<pengshuhai@jybdshop.cn>
-     * @date 2019/2/21 12:51:03
      * @param string $queueName 队列名称
      * @param Job $job 任务对象
      * @param int|null $delay 消息的DelaySeconds参数(延迟消费时间),如果为null，则延迟时间由aliyun控制台决定
-     * @param int $retry 当前重新尝试次数
+     * @param int $times 当前尝试的次数
      * @return bool
      */
-    private function pushMns($queueName, Job $job, $delay = null, $retry = 0)
+    private function pushMns($queueName, Job $job, $delay = null, $times = 1)
     {
         $this->open();
 
@@ -283,16 +272,14 @@ class Mns extends Connection
                 $isReTry = true;
             }
 
-            // 压入队列次数 = 重试次数+1
-            $times = $retry + 1;
-            if ($isReTry && $retry < $this->pushMaxTryTimes) {
+            if ($isReTry && $times < $this->pushMaxTryTimes) {
                 // 重试
-                Log::warning('Mns SendMessage Failed(times: '.$times.'): '.$e, 'mns', 'push');
-                $retry ++;
-                return $this->pushMns($queueName, $job, $delay, $retry);
+                Log::warning('Mns SendMessage Failed(times: '.$times.'): '.$e);
+                $times ++;
+                return $this->pushMns($queueName, $job, $delay, $times);
             } else {
                 // 不需要重试的或者重试完成还是报错的错误直接记录并报警
-                Log::fatal('Mns SendMessage Failed(times: '.$times.',no longer try): '.$e, 'mns', 'push');
+                Log::error('Mns SendMessage Failed(times: '.$times.',no longer try): '.$e);
                 return false;
             }
         }

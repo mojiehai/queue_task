@@ -6,7 +6,7 @@ use QueueTask\Worker;
 use QueueTask\Queue;
 use QueueTask\Load;
 
-$config = include './config.php';
+$config = include __DIR__.'/config.php';
 
 Load::Queue($config);
 

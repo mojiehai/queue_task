@@ -3,7 +3,7 @@
 namespace QueueTask\Connection\Redis;
 
 use QueueTask\Connection\Connection;
-use QueueTask\Job\Job;
+use QueueTask\Job;
 
 /**
  * Redis 操作任务类
@@ -11,6 +11,13 @@ use QueueTask\Job\Job;
  */
 class Redis extends Connection
 {
+
+    /**
+     * redis单例对象
+     * @var Redis
+     */
+    protected static $instance = null;
+
     /**
      * redis host
      * @var string
@@ -39,7 +46,7 @@ class Redis extends Connection
      * redis timeout
      * @var int
      */
-    private $timeout = 0;
+    private $connTimeout = 0;
 
     /**
      * redis驱动
@@ -58,11 +65,11 @@ class Redis extends Connection
     protected function __construct(array $config = [])
     {
         parent::__construct($config);
-        $this->host     = (isset($config['DB_HOST']) && !empty($config['DB_HOST'])) ? $config['DB_HOST'] : $this->host;
-        $this->port     = (isset($config['DB_PORT']) && !empty($config['DB_PORT'])) ? $config['DB_PORT'] : $this->port;
-        $this->database = (isset($config['DB_DATABASE']) && !empty($config['DB_DATABASE'])) ? $config['DB_DATABASE'] : $this->database;
-        $this->password = (isset($config['DB_PASSWORD']) && !empty($config['DB_PASSWORD'])) ? $config['DB_PASSWORD'] : $this->password;
-        $this->timeout  = (isset($config['DB_TIMEOUT']) && !empty($config['DB_TIMEOUT'])) ? $config['DB_TIMEOUT'] : $this->timeout;
+        $this->host     = (isset($config['host']) && !empty($config['host'])) ? $config['host'] : $this->host;
+        $this->port     = (isset($config['port']) && !empty($config['port'])) ? $config['port'] : $this->port;
+        $this->database = (isset($config['db']) && !empty($config['db'])) ? $config['db'] : $this->database;
+        $this->password = (isset($config['password']) && !empty($config['password'])) ? $config['password'] : $this->password;
+        $this->connTimeout  = (isset($config['connTimeout']) && !empty($config['connTimeout'])) ? $config['connTimeout'] : $this->connTimeout;
     }
 
     /**
@@ -87,11 +94,11 @@ class Redis extends Connection
      */
     private function open()
     {
-        $this->connect->connect($this->host, $this->port, $this->timeout);
+        $this->connect->connect($this->host, $this->port, $this->connTimeout);
         if (!empty($this->password)) {
             $this->connect->auth($this->password);
         }
-        $this->connect->select(0);
+        $this->connect->select($this->database);
     }
 
     /**
@@ -107,16 +114,17 @@ class Redis extends Connection
     }
 
     /**
-     * 弹出队头任务(先删除后返回该任务)
-     * @param $queueName
+     * 弹出队头任务(blocking)
+     * @param string $queueName 队列名称
+     * @param array & $extends 额外需要传递给ack方法的参数
      * @return Job|null
      */
-    public function pop($queueName)
+    public function pop($queueName, & $extends = [])
     {
         //从延迟集合中合并到主执行队列
         $this->migrateAllExpiredJobs($queueName);
 
-        $jobStr = $this->getConnect()->blPop($queueName, 3);
+        $jobStr = $this->getConnect()->blPop($queueName, $this->popTimeOut);
         if (empty($jobStr)) {
             return null;
         } else {
@@ -129,13 +137,24 @@ class Redis extends Connection
     }
 
     /**
-     * 压入队列
+     * 确认任务
+     * @param string $queueName
+     * @param Job $job
+     * @param array $extends
+     */
+    public function ack($queueName, Job $job = null, $extends = [])
+    {
+        // redis不需要确认任务
+    }
+
+
+    /**
+     * 压入队列(直接压入主执行队列)
+     *
      * @param Job $job
      * @param string $queueName 队列名称
+     *
      * @return boolean
-     *
-     *
-     * 直接压入主执行队列
      */
     public function push(Job $job, $queueName)
     {
@@ -150,15 +169,15 @@ class Redis extends Connection
 
     /**
      * 添加一条延迟任务
+     * 放入等待执行任务的有序集合中
+     *
      * @param int $delay 延迟的秒数
      * @param Job $job 任务
      * @param string $queueName 队列名称
+     *
      * @return boolean
-     *
-     *
-     * 放入等待执行任务的有序集合中
      */
-    public function laterOn($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
         //命令：zadd  主队列名:delayed   当前时间戳+延迟秒数  任务
         $result = $this->getConnect()->zAdd($queueName . ':delayed', time() + $delay, Job::Encode($job));

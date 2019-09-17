@@ -1,6 +1,7 @@
 #####以斜杠“/”开头表示目录；
 /.git
 /.idea
+/tests/config_local.php
 /runtime
 /vendor
 #####以星号“*”通配多个字符；

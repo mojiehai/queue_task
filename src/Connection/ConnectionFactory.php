@@ -36,8 +36,6 @@ class ConnectionFactory
                 'accessKeyID'       => '',          // Mns key id
                 'accessKeySecret'   => '',          // Mns key secret
                 'endpoint'          => '',          // Mns end point
-                'pushMaxTryTimes'   => 3,           // 入队最大尝试次数(发生错误会重试入队)
-                'deleteMaxTryTimes' => 3,           // 删除消息最大尝试次数(发生错误会重试删除)
             ],
         ],
 

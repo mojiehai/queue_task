@@ -36,8 +36,7 @@ class TestHandler extends JobHandler
 
     public function test(Job $job,$data)
     {
-        // 1/2几率成功
-        if(rand(0,1) == 0) {
+        if(true) {
             Log::info('run handler -- func: test -- params: '.json_encode($data). '; result : true');
         } else {
             Log::info('run handler -- func: test -- params: '.json_encode($data). '; result : false');

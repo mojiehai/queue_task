@@ -119,7 +119,7 @@ class Redis extends Connection
      * @param array & $extends 额外需要传递给ack方法的参数
      * @return Job|null
      */
-    public function pop($queueName, & $extends = [])
+    protected function pop($queueName, & $extends = [])
     {
         //从延迟集合中合并到主执行队列
         $this->migrateAllExpiredJobs($queueName);

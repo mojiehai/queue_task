@@ -77,12 +77,6 @@ class Mns extends Connection
         if (isset($config['endpoint']) && !empty($config['endpoint'])) {
             $this->endpoint = $config['endpoint'];
         }
-        if (isset($config['pushMaxTryTimes'])) {
-            $this->pushMaxTryTimes = intval($config['pushMaxTryTimes']);
-        }
-        if (isset($config['deleteMaxTryTimes'])) {
-            $this->deleteMaxTryTimes = intval($config['deleteMaxTryTimes']);
-        }
     }
 
     /**
@@ -111,7 +105,7 @@ class Mns extends Connection
      * @param array $extends
      * @return Job|null
      */
-    public function pop($queueName, & $extends = [])
+    protected function pop($queueName, & $extends = [])
     {
         $this->open();
 
@@ -144,7 +138,7 @@ class Mns extends Connection
      * @param Job $job
      * @param array $extends
      */
-    public function ack($queueName, Job $job = null, $extends = [])
+    protected function ack($queueName, Job $job = null, $extends = [])
     {
         // 删除消息
         $this->deleteMessage($extends['queue'], $extends['response']);
@@ -200,8 +194,7 @@ class Mns extends Connection
             if ($isReTry && $times < $this->deleteMaxTryTimes) {
                 // 重试
                 Log::warning('Mns DeleteMessage Failed(times: '.$times.'): '.$e);
-                $times ++;
-                return $this->deleteMessage($queue, $response, $times);
+                return $this->deleteMessage($queue, $response, $times + 1);
             } else {
                 // 不需要重试的或者重试完成还是报错的错误直接记录
                 Log::error('Mns DeleteMessage Failed(times: '.$times.',no longer try): '.$e);

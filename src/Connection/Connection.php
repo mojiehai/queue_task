@@ -28,7 +28,7 @@ abstract class Connection
      * pop阻塞超时时长
      * @var int
      */
-    protected $popTimeOut = 3;
+    public $popTimeOut = 3;
 
     /**
      * 处理程序
@@ -115,7 +115,7 @@ abstract class Connection
      * @param Job $job
      * @param $queueName
      */
-    protected function runJob(Job $job, $queueName)
+    public function runJob(Job $job, $queueName)
     {
         // 执行任务
         $handler = $this->handler;
@@ -128,7 +128,7 @@ abstract class Connection
      * @param array & $extends 额外需要传递给ack方法的参数
      * @return Job|null
      */
-    abstract public function pop($queueName, & $extends = []);
+    abstract protected function pop($queueName, & $extends = []);
 
     /**
      * 确认任务
@@ -136,7 +136,7 @@ abstract class Connection
      * @param Job $job
      * @param array $extends
      */
-    abstract public function ack($queueName, Job $job = null, $extends = []);
+    abstract protected function ack($queueName, Job $job = null, $extends = []);
 
     /**
      * 压入队列

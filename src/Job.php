@@ -1,18 +1,17 @@
 <?php
 
-namespace QueueTask\Job;
+namespace QueueTask;
 
-use QueueTask\Exception\TaskException;
 use QueueTask\Handler\JobHandler;
-use QueueTask\Queue\Queue;
 
 class Job
 {
     /**
-     * @var string 随机字符串(防止队列唯一)
+     * @var string 工作ID(唯一)
      */
-    public $checkid = '';
+    public $id = '';
 
+    /******************* handler ********************/
     /**
      * @var JobHandler job handler
      */
@@ -25,31 +24,40 @@ class Job
      * @var array 执行方法的参数
      */
     protected $param;
+
+
+    /******************* run ********************/
+    /**
+     * 最后一次执行状态 true成功  false失败
+     * @var bool
+     */
+    protected $lastStatus = true;
     /**
      * @var bool 是否强制失败(强制失败不会重试)
      */
     protected $forceFailed = false;
-    /**
-     * @var boolean 当前是否执行成功
-     */
-    protected $isexec;
-    /**
-     * @var int 当前已经执行次数
-     */
-    protected $attempts;
     /**
      * @var string[] 异常信息数组
      */
     protected $errorArr = [];
 
     /**
+     * @var boolean 当前是否执行成功
+     */
+    protected $isExec;
+    /**
+     * @var int 当前已经执行次数
+     */
+    protected $attempts;
+
+    /**
      * @param JobHandler $handler 回调类
      * @param String $func        回调类中的回调方法名
-     * @param array $param        该回调方法需要的参数数组
+     * @param mixed $param        该回调方法需要的参数
      */
-    public function __construct(JobHandler $handler , $func , array $param)
+    public function __construct(JobHandler $handler , $func , $param)
     {
-        $this->checkid = $this->generateCheckId();
+        $this->resetId();
 
         $this->handler = $handler;
         $this->func = $func;
@@ -59,12 +67,11 @@ class Job
     }
 
     /**
-     * 生成checkId
-     * @return string
+     * 生成id
      */
-    public function generateCheckId()
+    public function resetId()
     {
-        return md5(uniqid(rand(0,9999).microtime(true),true));
+        $this->id = md5(uniqid(rand(0,9999).microtime(true),true));
     }
 
     /**
@@ -72,7 +79,7 @@ class Job
      */
     public function init()
     {
-        $this->isexec = false;
+        $this->isExec = false;
         $this->attempts = 0;
     }
 
@@ -85,14 +92,13 @@ class Job
         return $this->attempts;
     }
 
-
     /**
      * 任务失败回调
      * @return void
      */
     public function failed()
     {
-        $this -> handler -> failed($this,$this->func,$this->param);
+        $this->handler->failed($this, $this->func, $this->param);
     }
 
     /**
@@ -101,7 +107,7 @@ class Job
      */
     public function success()
     {
-        $this -> handler -> success($this,$this->func,$this->param);
+        $this->handler->success($this, $this->func, $this->param);
     }
 
     /**
@@ -110,28 +116,49 @@ class Job
      */
     public function execute()
     {
-        $this -> attempts ++;
-        try{
+        $this->attempts++;
 
-            //执行handler回调
-            $this->handler->handler($this,$this->func,$this->param);
+        $this->resetStatus();
 
-            $this->isexec = true;
+        //执行handler回调
+        $this->handler->handler($this, $this->func, $this->param);
 
-        }catch (TaskException $e){
-
-            if ($e->getCode() == TaskException::FORCE_FAILED) {
-                // 强制失败，不会重试
-                $this->forceFailed = true;
-            }
-
-            $this -> isexec = false;
-
-            $this->errorArr[] = $e->getMessage();
+        if ($this->lastStatus) {
+            $this->isExec = true;
         }
 
     }
 
+    /**
+     * 重制执行状态
+     */
+    protected function resetStatus()
+    {
+        $this->lastStatus = true;
+        $this->forceFailed = false;
+    }
+
+    /**
+     * 设置本次执行失败(会重试)
+     * @param string $message 错误信息
+     */
+    public function setOnceFailure($message = "")
+    {
+        $this->lastStatus = false;
+        $this->forceFailed = false;
+        $this->errorArr[] = $message;
+    }
+
+    /**
+     * 设置本次任务为强制失败(不会重试)
+     * @param string $message 错误信息
+     */
+    public function setForceFailure($message = "")
+    {
+        $this->lastStatus = false;
+        $this->forceFailed = true;
+        $this->errorArr[] = $message;
+    }
 
     /**
      * 任务是否执行成功
@@ -139,7 +166,7 @@ class Job
      */
     public function isExec()
     {
-        return $this->isexec;
+        return $this->isExec;
     }
 
 
@@ -157,7 +184,7 @@ class Job
      * @param int $maxAttempt
      * @return bool
      */
-    public function isRelease(int $maxAttempt)
+    public function isRetry(int $maxAttempt)
     {
         if ($this->isExec()) {
             // 执行成功不需要重试
@@ -180,12 +207,11 @@ class Job
      * 重试该任务
      * @param Queue $queue 队列
      * @param string $queueName 队列名
-     * @param int $delay 延迟秒数
      * @return boolean
      */
-    public function release(Queue $queue, $queueName, $delay = 0)
+    public function reTry(Queue $queue, $queueName)
     {
-        return $queue->laterPush($delay, $this, $queueName);
+        return $queue->push($this, $queueName);
     }
 
 

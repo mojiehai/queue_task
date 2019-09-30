@@ -1,29 +1,46 @@
 <?php
 
 return [
-    'connectRegister' => [
-        'MySql' => [
+    'log' => [
+        'logRoot' => __DIR__ . '/../runtime/log',
+        'fileName' => '\q\u\e\u\e_Y-m-d.\l\o\g',
+    ],
+
+    'connectList' => [
+        'Redis' => [
+            'class' => '\\QueueTask\\Connection\\Redis\\Redis',
             'config' => [
-                'DB_HOST'        => '127.0.0.1',     //数据库地址
-                'DB_PORT'        => '3306',          //数据库端口
-                'DB_USERNAME'    => 'root',          //用户名
-                'DB_PASSWORD'    => 'root',          //密码
-                'DB_CHARSET'     => 'utf8',          //数据库字符集
-                'DB_DATABASE'    => 'queue_task',    //数据库名称
-                'DB_TABLE'       => 'job_queue',     //表名称
-                'DB_TABLE_DELAY' => 'job_queue_delay', //异步表名称
+                'popTimeout'    => 3,               // pop阻塞的超时时长 s
+                'host'          => '127.0.0.1',     // 数据库地址
+                'port'          => 6379,            // 数据库端口
+                'db'            => 0,               // 库
+                'password'      => null,            // 密码
+                'connTimeout'   => 1,               // 链接超时
             ],
         ],
-
-        'Redis' => [
+        'Mns' => [
+            'class' => '\\QueueTask\\Connection\\Mns\\Mns',
             'config' => [
-                'DB_HOST'       => '127.0.0.1',     //数据库地址
-                'DB_PORT'       => '6379',          //数据库端口
-                'DB_DATABASE'   => '0',             //数据库名称
-                'DB_PASSWORD'   => null,            //密码        无密码时，设置为null
+                'popTimeout'        => 3,           // pop阻塞的超时时长 s
+                'accessKeyID'       => '',          // Mns key id
+                'accessKeySecret'   => '',          // Mns key secret
+                'endpoint'          => '',          // Mns end point
+            ],
+        ],
+        'RabbitMQ' => [
+            'class' => '\\QueueTask\\Connection\\RabbitMQ\\RabbitMQ',
+            'config' => [
+                // exchanges需要设置为direct，持久化存储，不自动确认消息
+                'popTimeout'    => 3,               // pop阻塞的超时时长 s
+                'host'          => '127.0.0.1',
+                'port'          => 5672,
+                'username'      => '',
+                'password'      => '',
+                'vhost'         => '/',           // 虚拟主机
+                'exChanges'     => '', // 直连交换机名称
             ],
         ],
     ],
 
-    'currentConnect' => 'MySql',
+    'currentConnect' => 'RabbitMQ',
 ];

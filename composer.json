@@ -10,10 +10,13 @@
         }
     ],
     "require": {
-        "mojiehai/process_manage" : "~1.0",
+        "aliyun/aliyun-mns-php-sdk": "^1.1",
+        "php-amqplib/php-amqplib": "^2.10",
         "php": ">=7.0",
-        "ext-mysqli": "*",
-        "ext-json": "*"
+        "ext-json": "*",
+        "ext-redis": "*",
+        "ext-pcntl": "*",
+        "ext-posix": "*"
     },
     "autoload": {
         "psr-4": {"QueueTask\\": "./src/"}

@@ -3,10 +3,10 @@
 require __DIR__."/bootstrap.php";
 
 use Tests\TestHandler;
-use QueueTask\Queue\Queue;
-use QueueTask\Load\Load;
+use QueueTask\Load;
+use QueueTask\Queue;
 
-$config = include './config.php';
+$config = include __DIR__.'/config.php';
 
 Load::Queue($config);
 

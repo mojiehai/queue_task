@@ -3,8 +3,7 @@
 namespace QueueTask\Handler;
 
 use QueueTask\Exception\TaskException;
-use QueueTask\Job\Job;
-use Throwable;
+use QueueTask\Job;
 
 
 /**
@@ -19,15 +18,18 @@ abstract class JobHandler
      * @param Job $job      任务
      * @param String $func     执行的方法
      * @param array $data     参数
-     * @return mixed
-     * @throws TaskException
+     * @return void
      */
-    public function handler($job, $func, $data)
+    public function handler(Job $job, $func, $data)
     {
-        if (method_exists($this, $func)) {
-            $this->$func($job, $data);
-        } else {
-            $this->throwOnceFailure('method "'.$func .'" does not exist');
+        try {
+            if (method_exists($this, $func)) {
+                $this->$func($job, $data);
+            } else {
+                $job->setForceFailure('method "'.$func .'" does not exist');
+            }
+        } catch (\Exception $e) {
+            $job->setOnceFailure($e->getMessage());
         }
     }
 
@@ -39,7 +41,7 @@ abstract class JobHandler
      * @param array $data 参数
      * @return mixed
      */
-    abstract public function failed($job, $func, $data);
+    abstract public function failed(Job $job, $func, $data);
 
 
     /**
@@ -49,7 +51,7 @@ abstract class JobHandler
      * @param array $data 参数
      * @return mixed
      */
-    abstract public function success($job, $func, $data);
+    abstract public function success(Job $job, $func, $data);
 
 
     /**
@@ -61,25 +63,4 @@ abstract class JobHandler
      * public function func($job,$data){}
      */
 
-
-    /**
-     * 设置本次执行handler为失败(会重试到指定次数)
-     * @param string $message 错误信息
-     * @throws TaskException
-     */
-    public function throwOnceFailure($message = "")
-    {
-        throw new TaskException($message, 0);
-    }
-
-    /**
-     * 设置本次执行handler为强制失败(不会重试)
-     * @param string $message 错误信息
-     * @throws TaskException
-     */
-    public function throwForceFailure($message = "")
-    {
-        throw new TaskException($message, TaskException::FORCE_FAILED);
-    }
-
-} 
+}

@@ -1,20 +1,17 @@
 <?php
 
-namespace QueueTask\Queue;
+namespace QueueTask;
 
-use QueueTask\Config\QueueConfig;
 use QueueTask\Connection\Connection;
-use QueueTask\Job\Job;
 use QueueTask\Handler\JobHandler;
 use QueueTask\Connection\ConnectionFactory;
-use ProcessManage\Exception\Exception;
-use QueueTask\Log\WorkLog;
+use QueueTask\Exception\Exception;
 
 /**
  * 队列实体
  * Class Queue
  */
-class Queue implements QueueInterface
+class Queue
 {
 
     /**
@@ -52,31 +49,40 @@ class Queue implements QueueInterface
 
     /**
      * @param string $connectName 链接类型(默认走配置)
-     * @return Queue
+     * @return Queue|null
      */
     public static function getInstance($connectName = '')
     {
         if (empty($connectName)) {
-            $connectName = QueueConfig::$currentConnect;
+            $connectName = ConnectionFactory::$currentConnect;
         }
         if (!isset(static::$instances[$connectName]) || !(static::$instances[$connectName] instanceof Queue)) {
-            try {
-                static::$instances[$connectName] = new static(ConnectionFactory::getInstance($connectName));
-            } catch (Exception $e) {
-                WorkLog::error($e->getExceptionAsString());
+            $connect = ConnectionFactory::getInstance($connectName);
+            if ($connect) {
+                static::$instances[$connectName] = new static($connect);
+            } else {
+                return null;
             }
         }
         return static::$instances[$connectName];
     }
 
     /**
-     * 弹出队列(弹出后队列中就没有这个任务了)
-     * @param String $queueName 队列名称
-     * @return Job
+     * 设置处理程序
+     * @param \Closure $handler
      */
-    public function pop($queueName)
+    public function setHandler(\Closure $handler)
     {
-        return $this->connection->pop($queueName);
+        $this->connection->setHandler($handler);
+    }
+
+    /**
+     * 执行pop出来的任务(阻塞方法)
+     * @param string $queueName
+     */
+    public function popRun($queueName)
+    {
+        $this->connection->popRun($queueName);
     }
 
     /**
@@ -97,12 +103,12 @@ class Queue implements QueueInterface
      * @param string $queueName 队列名
      * @return boolean
      */
-    public function laterPush($delay, Job $job, $queueName)
+    public function later($delay, Job $job, $queueName)
     {
         if ($delay <= 0) {
             return $this->push($job, $queueName);
         } else {
-            return $this->connection->laterOn($delay, $job, $queueName);
+            return $this->connection->later($delay, $job, $queueName);
         }
     }
 
@@ -110,11 +116,11 @@ class Queue implements QueueInterface
      * 入队列  (对外)
      * @param JobHandler $handler 回调类
      * @param String $func 方法名
-     * @param array $param 参数
+     * @param mixed $param 参数
      * @param String $queueName 队列名
      * @return boolean
      */
-    public function pushOn(JobHandler $handler, $func, array $param, $queueName)
+    public function pushOn(JobHandler $handler, $func, $param, $queueName)
     {
         $job = new Job($handler, $func, $param);
         return $this->push($job, $queueName);
@@ -125,14 +131,14 @@ class Queue implements QueueInterface
      * @param Int $delay 延迟时间/秒
      * @param JobHandler $handler 回调类
      * @param String $func 方法名
-     * @param array $param 参数
+     * @param mixed $param 参数
      * @param String $queueName 队列名
      * @return boolean
      */
-    public function laterOn($delay, JobHandler $handler, $func, array $param, $queueName)
+    public function laterOn($delay, JobHandler $handler, $func, $param, $queueName)
     {
         $job = new Job($handler, $func, $param);
-        return $this->laterPush($delay,$job, $queueName);
+        return $this->later($delay,$job, $queueName);
     }
 
 

@@ -53,9 +53,9 @@ class Job
     /**
      * @param JobHandler $handler 回调类
      * @param String $func        回调类中的回调方法名
-     * @param array $param        该回调方法需要的参数数组
+     * @param mixed $param        该回调方法需要的参数
      */
-    public function __construct(JobHandler $handler , $func , array $param)
+    public function __construct(JobHandler $handler , $func , $param)
     {
         $this->resetId();
 

@@ -116,11 +116,11 @@ class Queue
      * 入队列  (对外)
      * @param JobHandler $handler 回调类
      * @param String $func 方法名
-     * @param array $param 参数
+     * @param mixed $param 参数
      * @param String $queueName 队列名
      * @return boolean
      */
-    public function pushOn(JobHandler $handler, $func, array $param, $queueName)
+    public function pushOn(JobHandler $handler, $func, $param, $queueName)
     {
         $job = new Job($handler, $func, $param);
         return $this->push($job, $queueName);
@@ -131,11 +131,11 @@ class Queue
      * @param Int $delay 延迟时间/秒
      * @param JobHandler $handler 回调类
      * @param String $func 方法名
-     * @param array $param 参数
+     * @param mixed $param 参数
      * @param String $queueName 队列名
      * @return boolean
      */
-    public function laterOn($delay, JobHandler $handler, $func, array $param, $queueName)
+    public function laterOn($delay, JobHandler $handler, $func, $param, $queueName)
     {
         $job = new Job($handler, $func, $param);
         return $this->later($delay,$job, $queueName);

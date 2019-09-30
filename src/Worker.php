@@ -4,9 +4,10 @@ namespace QueueTask;
 
 use QueueTask\Helpers\LoadConfig;
 use QueueTask\Helpers\Log;
+use QueueTask\Process\ProcessObserver;
 
 /**
- * 工作类
+ * 工作类  单任务模式
  * Class Worker
  */
 class Worker
@@ -35,7 +36,7 @@ class Worker
      * 队列任务失败尝试次数，0为不限制
      * @var int
      */
-    public $attempt = 10;
+    public $attempt = 3;
 
     /**
      * 允许使用的最大内存
@@ -50,13 +51,30 @@ class Worker
     public $maxRunTime = 0;
 
     /**
-     * Worker constructor.
-     * @param Queue $queue 队列实例
+     * 进程观察者
+     * @var ProcessObserver
      */
-    public function __construct(Queue $queue)
+    protected $observer = null;
+
+    /**
+     * Worker constructor.
+     * @param array $config
+     */
+    public function __construct(array $config = [])
     {
         $this->configNameList = ['queueName', 'attempt', 'memory', 'maxRunTime'];
-        $this->queue = $queue;
+        $this->setConfig($config);
+
+        $this->queue = Queue::getInstance();
+    }
+
+    /**
+     * 进程观察者
+     * @param ProcessObserver $observer
+     */
+    public function bindProcessObserver(ProcessObserver $observer)
+    {
+        $this->observer = $observer;
     }
 
     /**
@@ -97,8 +115,12 @@ class Worker
             // 检查内存超出
             $this->checkMemoryExceeded();
 
+            // 进程观察者检查是否需要停止
+            $this->observeCheckStop();
+
             // 退出监听
             if ($this->isStop()) {
+                $this->reportStopInfo();
                 break;
             }
         }
@@ -124,7 +146,7 @@ class Worker
     /**
      * 设置退出监听
      */
-    protected function setStop()
+    public function setStop()
     {
         $this->close();
         $this->isStop = true;
@@ -149,6 +171,32 @@ class Worker
     {
         if ($this->maxRunTime > 0 && time() > $endTime) {
             $this->setStop();
+        }
+    }
+
+    /**************************** 多任务模式 *********************************/
+    /**
+     * 进程观察者检查是否需要停止
+     */
+    protected function observeCheckStop()
+    {
+        if ($this->observer instanceof ProcessObserver) {
+            // 检测
+            $this->observer->check();
+            // 判断是否停止
+            if ($this->observer->isStop) {
+                $this->setStop();
+            }
+        }
+    }
+
+    /**
+     * 让进程观察者上报进程停止信息
+     */
+    protected function reportStopInfo()
+    {
+        if ($this->observer instanceof ProcessObserver) {
+            $this->observer->reportStopInfo();
         }
     }
 

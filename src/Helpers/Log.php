@@ -63,8 +63,8 @@ class Log
 
         // 信息
         $string = sprintf(
-            "[%s][%s] pid_%s: %s; extends=%s \n",
-            $level, date('Y-m-d m:d:s', $time), posix_getpid(), $message, json_encode($extends)
+            "[%s][%s]: %s; extends=%s \n",
+            $level, date('Y-m-d m:d:s', $time), $message, json_encode($extends)
         );
 
         if (file_put_contents($filePath, $string, FILE_APPEND)) {

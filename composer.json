@@ -14,7 +14,9 @@
         "php-amqplib/php-amqplib": "^2.10",
         "php": ">=7.0",
         "ext-json": "*",
-        "ext-redis": "*"
+        "ext-redis": "*",
+        "ext-pcntl": "*",
+        "ext-posix": "*"
     },
     "autoload": {
         "psr-4": {"QueueTask\\": "./src/"}
